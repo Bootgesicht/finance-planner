@@ -1,0 +1,16 @@
+# Database
+*.db
+
+# Maven
+target/
+
+# IDE
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
