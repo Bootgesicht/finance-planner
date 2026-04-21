@@ -1,20 +1,58 @@
 # Finance Planner
 
-A personal finance planning web application for managing household expenses, categories, and budgets.
+## Vision
 
-## Features (planned)
+This project aims to replace traditional spreadsheet-based household finance tracking 
+with a modern, visual, and interactive web application.
 
-- Manage persons (adults / children)
+The goal is to not only track expenses and income, but to deeply analyze financial behavior over time.
+
+## Planned Features
+
+### Data Tracking
 - Track income and expenses
-- Categories and subcategories
-- Overview of monthly finances
+- Assign entries to categories and subcategories
+- Assign entries to persons
+
+### Analytics & Visualizations
+- Doughnut charts for category distribution (monthly / yearly)
+- Subcategory breakdown within a category
+- Year-over-year comparison (bar charts)
+- Income vs expenses over time (line charts)
+- Monthly and yearly views
+
+### Filtering
+- Filter by person
+- Filter by category / subcategory
+- Filter by time (month / year / custom range)
 
 ## Tech Stack
 
-- Backend: Java / Spring Boot
-- Frontend: (planned)
-- Database: (currently SQLite)
+### Backend
+- Java
+- Spring Boot (planned)
 
-## Status
+### Frontend
+- React
+- JavaScript
+- Bootstrap
 
-Work in progress
+### Visualization
+- Chart.js
+
+### Database
+- SQLite (current)
+
+## Current Status
+
+- Database schema defined
+- Repositories implemented (Person, Category, Entry)
+- Basic CRUD operations completed
+- Analytics and frontend not yet implemented
+
+## Future Ideas
+
+- Multi-user support
+- Export to CSV
+- Budget planning
+- Notifications / limits
