@@ -33,7 +33,6 @@ public class PersonRepository {
                 persons.add(person);
             }
         } catch (SQLException e) {
-            // TODO: handle exception
             e.printStackTrace();
         }
         return persons;
@@ -62,7 +61,6 @@ public class PersonRepository {
                 }
             }
         } catch (SQLException e) {
-            // TODO: handle exception
             e.printStackTrace();
         }
         return null;
@@ -90,7 +88,6 @@ public class PersonRepository {
             }
 
         } catch (SQLException e) {
-            // TODO: handle exception
             e.printStackTrace();
         }
         return null;
@@ -108,7 +105,6 @@ public class PersonRepository {
             ps.setString(2, person.getPersonRole().name());
             ps.executeUpdate();
         } catch (SQLException e) {
-            // TODO: handle exception
             e.printStackTrace();
         }
     }
@@ -126,7 +122,6 @@ public class PersonRepository {
             ps.executeUpdate();
 
         } catch (SQLException e) {
-            // TODO: handle exception
             e.printStackTrace();
         }
 

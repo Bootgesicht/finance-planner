@@ -16,7 +16,7 @@ public class Entry {
     private LocalDateTime updatedAt;
 
     public Entry(int id, LocalDate date, double amount, String description,
-            int subcategoryId, Integer personId, String note,
+            int subcategoryId, int personId, String note,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
 
         this.id = id;
