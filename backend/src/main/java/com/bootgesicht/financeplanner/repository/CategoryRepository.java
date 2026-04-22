@@ -9,6 +9,8 @@ import java.util.List;
 
 import com.bootgesicht.financeplanner.model.Category;
 import com.bootgesicht.financeplanner.model.CategoryKind;
+import com.bootgesicht.financeplanner.model.Person;
+import com.bootgesicht.financeplanner.model.PersonRole;
 
 public class CategoryRepository {
 
@@ -26,11 +28,8 @@ public class CategoryRepository {
                 ResultSet rs = ps.executeQuery();) {
 
             while (rs.next()) {
-                Category category = new Category(
-                        rs.getInt("id"),
-                        rs.getString("name"),
-                        CategoryKind.valueOf(rs.getString("kind")));
-                categories.add(category);
+
+                categories.add(mapRowToCategory(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -49,10 +48,7 @@ public class CategoryRepository {
             ps.setString(1, name);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new Category(
-                            rs.getInt("id"),
-                            rs.getString("name"),
-                            CategoryKind.valueOf(rs.getString("kind")));
+                    return mapRowToCategory(rs);
                 }
             }
 
@@ -73,10 +69,7 @@ public class CategoryRepository {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new Category(
-                            rs.getInt("id"),
-                            rs.getString("name"),
-                            CategoryKind.valueOf(rs.getString("kind")));
+                    return mapRowToCategory(rs);
                 }
             }
 
@@ -118,6 +111,13 @@ public class CategoryRepository {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    private Category mapRowToCategory(ResultSet rs) throws SQLException {
+        return new Category(
+                rs.getInt("id"),
+                rs.getString("name"),
+                CategoryKind.valueOf(rs.getString("kind")));
     }
 
 }

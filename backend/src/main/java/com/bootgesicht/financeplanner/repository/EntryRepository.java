@@ -148,7 +148,19 @@ public class EntryRepository {
     }
 
     public void deleteById(int id) {
+        String sql = """
+                DELETE FROM entries
+                WHERE id = ?
+                """;
+        try (
+                Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql);) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
 
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private Entry mapRowToEntry(ResultSet rs) throws SQLException {

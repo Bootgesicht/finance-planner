@@ -14,23 +14,17 @@ public class PersonRepository {
 
     public List<Person> findAll() {
         List<Person> persons = new ArrayList<>();
-
         String sql = """
                     SELECT id, name, role
                     FROM persons
                 """;
-
         try (
                 Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql);
                 ResultSet rs = ps.executeQuery();) {
 
             while (rs.next()) {
-                Person person = new Person(
-                        rs.getInt("id"),
-                        rs.getString("name"),
-                        PersonRole.valueOf(rs.getString("role")));
-                persons.add(person);
+                persons.add(mapRowToPerson(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -44,20 +38,13 @@ public class PersonRepository {
                 FROM persons
                 WHERE id = ?
                 """;
-
         try (
                 Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql);) {
-
             ps.setInt(1, id);
-
             try (ResultSet rs = ps.executeQuery()) {
-
                 if (rs.next()) {
-                    return new Person(
-                            rs.getInt("id"),
-                            rs.getString("name"),
-                            PersonRole.valueOf(rs.getString("role")));
+                    return mapRowToPerson(rs);
                 }
             }
         } catch (SQLException e) {
@@ -80,10 +67,7 @@ public class PersonRepository {
             ps.setString(1, name);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new Person(
-                            rs.getInt("id"),
-                            rs.getString("name"),
-                            PersonRole.valueOf(rs.getString("role")));
+                    return mapRowToPerson(rs);
                 }
             }
 
@@ -125,6 +109,13 @@ public class PersonRepository {
             e.printStackTrace();
         }
 
+    }
+
+    private Person mapRowToPerson(ResultSet rs) throws SQLException {
+        return new Person(
+                rs.getInt("id"),
+                rs.getString("name"),
+                PersonRole.valueOf(rs.getString("role")));
     }
 
 }
