@@ -6,11 +6,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
 import com.bootgesicht.financeplanner.model.Category;
 import com.bootgesicht.financeplanner.model.CategoryKind;
-import com.bootgesicht.financeplanner.model.Person;
-import com.bootgesicht.financeplanner.model.PersonRole;
 
 public class CategoryRepository {
 
