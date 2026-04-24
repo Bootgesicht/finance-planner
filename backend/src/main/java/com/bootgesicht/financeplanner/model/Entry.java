@@ -50,7 +50,7 @@ public class Entry {
         return subcategoryId;
     }
 
-    public Integer getPersonId() {
+    public int getPersonId() {
         return personId;
     }
 

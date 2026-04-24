@@ -99,7 +99,7 @@ public class EntryRepository {
         return entries;
     }
 
-    public List<Entry> findDateBetween(String entryDateOne, String entryDateTwo) {
+    public List<Entry> findByDateBetween(String entryDateOne, String entryDateTwo) {
         List<Entry> entries = new ArrayList<>();
         String sql = """
                     SELECT id, entry_date, amount, description, subcategory_id, person_id, note, created_at, updated_at
