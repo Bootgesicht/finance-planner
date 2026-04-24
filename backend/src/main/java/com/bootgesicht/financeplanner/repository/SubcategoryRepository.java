@@ -51,7 +51,7 @@ public class SubcategoryRepository {
         return null;
     }
 
-    public Subcategory findByID(int id) {
+    public Subcategory findById(int id) {
         String sql = """
                 SELECT id, category_id, name
                 FROM subcategories

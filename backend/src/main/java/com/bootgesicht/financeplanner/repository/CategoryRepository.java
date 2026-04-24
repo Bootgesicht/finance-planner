@@ -55,7 +55,7 @@ public class CategoryRepository {
         return null;
     }
 
-    public Category findByID(int id) {
+    public Category findById(int id) {
         String sql = """
                 SELECT id, name, kind
                 FROM categories
