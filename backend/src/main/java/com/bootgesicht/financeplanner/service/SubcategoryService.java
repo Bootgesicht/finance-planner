@@ -8,7 +8,7 @@ import com.bootgesicht.financeplanner.repository.SubcategoryRepository;
 public class SubcategoryService {
     private SubcategoryRepository subcategoryRepository = new SubcategoryRepository();
 
-    public List<Subcategory> getAllSubcategorys() {
+    public List<Subcategory> getAllSubcategories() {
         return subcategoryRepository.findAll();
     }
 

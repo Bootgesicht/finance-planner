@@ -25,7 +25,7 @@ public class CategoryService {
         categoryRepository.save(category);
     }
 
-    public void deletePersonById(int id) {
+    public void deleteCategoryById(int id) {
         categoryRepository.deleteById(id);
     }
 
