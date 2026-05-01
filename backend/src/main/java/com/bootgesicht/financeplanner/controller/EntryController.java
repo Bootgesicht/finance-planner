@@ -7,8 +7,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.bootgesicht.financeplanner.dto.EntryRequest;
 import com.bootgesicht.financeplanner.model.Entry;
 import com.bootgesicht.financeplanner.service.EntryService;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/entries")
@@ -28,11 +31,17 @@ public class EntryController {
 
     @GetMapping("/person/{personId}")
     public List<Entry> getEntriesByPersonId(@PathVariable int personId) {
-        return entryService.getEntriesByPersonById(personId);
+        return entryService.getEntriesByPersonId(personId);
     }
 
     @GetMapping("/subcategory/{subcategoryId}")
     public List<Entry> getEntriesBySubcategoryId(@PathVariable int subcategoryId) {
         return entryService.getEntriesBySubcategoryId(subcategoryId);
     }
+
+    @PostMapping
+    public void createEntry(@RequestBody EntryRequest request) {
+        entryService.createEntry(request);
+    }
+
 }

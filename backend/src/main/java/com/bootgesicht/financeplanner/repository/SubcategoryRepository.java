@@ -71,6 +71,27 @@ public class SubcategoryRepository {
         return null;
     }
 
+    public List<Subcategory> getSubcategoriesByCategoryId(int categoryId) {
+        List<Subcategory> subCategories = new ArrayList<>();
+        String sql = """
+                SELECT id, category_id, name
+                FROM subcategories
+                WHERE category_id = ?
+                        """;
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql);) {
+            ps.setInt(1, categoryId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    subCategories.add(mapRowToSubCategory(rs));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return subCategories;
+    }
+
     public void save(Subcategory subCategory) {
         String sql = """
                 INSERT INTO subcategories (category_id, name)

@@ -2,6 +2,7 @@ package com.bootgesicht.financeplanner.service;
 
 import java.util.List;
 
+import com.bootgesicht.financeplanner.dto.EntryRequest;
 import com.bootgesicht.financeplanner.model.Entry;
 import com.bootgesicht.financeplanner.repository.EntryRepository;
 
@@ -20,7 +21,7 @@ public class EntryService {
         return entryRepository.findBySubcategoryId(subcategoryid);
     }
 
-    public List<Entry> getEntriesByPersonById(int personId) {
+    public List<Entry> getEntriesByPersonId(int personId) {
         return entryRepository.findByPersonId(personId);
     }
 
@@ -28,7 +29,18 @@ public class EntryService {
         return entryRepository.findByDateBetween(entryDateOne, entryDateTwo);
     }
 
-    public void createEntry(Entry entry) {
+    public void createEntry(EntryRequest request) {
+        Entry entry = new Entry(
+                0, // id wird von DB gesetzt
+                request.getDate(),
+                request.getAmount(),
+                request.getDescription(),
+                request.getSubcategoryId(),
+                request.getPersonId(),
+                request.getNote(),
+                null,
+                null);
+
         entryRepository.save(entry);
     }
 

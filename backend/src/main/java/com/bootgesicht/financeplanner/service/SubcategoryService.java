@@ -20,6 +20,10 @@ public class SubcategoryService {
         return subcategoryRepository.findByName(name);
     }
 
+    public List<Subcategory> getSubcategoriesByCategoryId(int categoryId) {
+        return subcategoryRepository.getSubcategoriesByCategoryId(categoryId);
+    }
+
     public void createSubcategory(Subcategory subCategory) {
         subcategoryRepository.save(subCategory);
     }
