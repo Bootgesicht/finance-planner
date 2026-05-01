@@ -9,7 +9,7 @@ public class CategoryService {
 
     private CategoryRepository categoryRepository = new CategoryRepository();
 
-    public List<Category> getAllCategorys() {
+    public List<Category> getAllCategories() {
         return categoryRepository.findAll();
     }
 

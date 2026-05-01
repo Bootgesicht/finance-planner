@@ -20,7 +20,7 @@ public class EntryService {
         return entryRepository.findBySubcategoryId(subcategoryid);
     }
 
-    public List<Entry> getEntriesPersonById(int personId) {
+    public List<Entry> getEntriesByPersonById(int personId) {
         return entryRepository.findByPersonId(personId);
     }
 
