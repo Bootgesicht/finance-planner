@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 function LandingPage() {
     return (
         <div className="container mt-4">
@@ -14,7 +16,9 @@ function LandingPage() {
                             <p className="card-text">
                                 Erfasse mehrere Ausgaben für einen Tag.
                             </p>
-                            <button className="btn btn-primary">Einträge erfassen</button>
+                            <Link to="/entries/new" className="btn btn-primary">
+                                Einträge erfassen
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -26,7 +30,9 @@ function LandingPage() {
                             <p className="card-text">
                                 Analysiere Ausgaben nach Monat, Jahr und Kategorie.
                             </p>
-                            <button className="btn btn-outline-primary">Analytics öffnen</button>
+                            <Link to="/analytics" className="btn btn-outline-primary">
+                                Analytics öffnen
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -38,7 +44,9 @@ function LandingPage() {
                             <p className="card-text">
                                 Personen, Kategorien und Subkategorien verwalten.
                             </p>
-                            <button className="btn btn-outline-secondary">Verwaltung</button>
+                            <Link to="/management" className="btn btn-outline-secondary">
+                                Verwaltung
+                            </Link>
                         </div>
                     </div>
                 </div>
