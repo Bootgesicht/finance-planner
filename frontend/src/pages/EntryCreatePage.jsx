@@ -1,22 +1,26 @@
 import { useEffect, useState } from 'react'
 import { getPersons } from '../api/personApi'
-import { createEntry } from '../api/entryApi'
 import { getCategories } from '../api/categoryApi'
-import { getSubcategoriesByCategoryId } from '../api/subcategoryApi'
+import EntryRow from '../components/EntryRow'
+import { createEntry } from '../api/entryApi'
 
 function EntryCreatePage() {
     const [persons, setPersons] = useState([])
     const [categories, setCategories] = useState([])
-    const [subcategories, setSubcategories] = useState([])
 
     const [selectedPersonId, setSelectedPersonId] = useState('')
-    const [selectedCategoryId, setSelectedCategoryId] = useState('')
-    const [selectedSubcategoryId, setSelectedSubcategoryId] = useState('')
-
     const [entryDate, setEntryDate] = useState('')
-    const [amount, setAmount] = useState('')
-    const [description, setDescription] = useState('')
-    const [note, setNote] = useState('')
+
+    const [entryRows, setEntryRows] = useState([
+        {
+            date: '',
+            amount: '',
+            description: '',
+            categoryId: '',
+            subcategoryId: '',
+            note: ''
+        }
+    ])
 
     useEffect(() => {
         getPersons()
@@ -28,41 +32,72 @@ function EntryCreatePage() {
             .catch(error => console.error('Error loading categories:', error))
     }, [])
 
-    function handleCategoryChange(event) {
-        const categoryId = event.target.value
-
-        setSelectedCategoryId(categoryId)
-        setSelectedSubcategoryId('')
-        setSubcategories([])
-
-        if (categoryId) {
-            getSubcategoriesByCategoryId(categoryId)
-                .then(data => setSubcategories(data))
-                .catch(error => console.error('Error loading subcategories:', error))
-        }
+    function handleRowChange(index, field, value) {
+        setEntryRows(currentRows =>
+            currentRows.map((row, rowIndex) =>
+                rowIndex === index
+                    ? { ...row, [field]: value }
+                    : row
+            )
+        )
     }
 
-    function handleSave() {
-        const entry = {
-            date: entryDate,
-            amount: Number(amount),
-            description: description,
-            subcategoryId: Number(selectedSubcategoryId),
+    function addEntryRow() {
+        setEntryRows(currentRows => {
+            const lastRow = currentRows[currentRows.length - 1]
+
+            return [
+                ...currentRows,
+                {
+                    date: lastRow?.date || entryDate,
+                    amount: '',
+                    description: '',
+                    categoryId: '',
+                    subcategoryId: '',
+                    note: ''
+                }
+            ]
+        })
+    }
+
+    function removeEntryRow(index) {
+        setEntryRows(currentRows =>
+            currentRows.filter((_, rowIndex) => rowIndex !== index)
+        )
+    }
+
+    function parseAmount(value) {
+        return Number(String(value).replace(',', '.'))
+    }
+
+    function handleSaveAll() {
+        const entries = entryRows.map(row => ({
+            date: row.date,
+            amount: parseAmount(row.amount),
+            description: row.description,
+            subcategoryId: Number(row.subcategoryId),
             personId: Number(selectedPersonId),
-            note: note || null
-        }
+            note: row.note || null
+        }))
 
-        console.log('Saving entry:', entry)
+        console.log('Saving entries:', entries)
 
-        createEntry(entry)
+        Promise.all(entries.map(entry => createEntry(entry)))
             .then(() => {
-                console.log('Entry saved')
+                console.log('All entries saved')
 
-                setAmount('')
-                setDescription('')
-                setNote('')
+                setEntryRows([
+                    {
+                        date: entryDate,
+                        amount: '',
+                        description: '',
+                        categoryId: '',
+                        subcategoryId: '',
+                        note: ''
+                    }
+                ])
             })
-            .catch(error => console.error('Error saving entry:', error))
+            .catch(error => console.error('Error saving entries:', error))
     }
 
     return (
@@ -76,7 +111,18 @@ function EntryCreatePage() {
                         type="date"
                         className="form-control"
                         value={entryDate}
-                        onChange={(event) => setEntryDate(event.target.value)}
+                        onChange={(event) => {
+                            const newDate = event.target.value
+                            setEntryDate(newDate)
+
+                            setEntryRows(currentRows =>
+                                currentRows.map((row, index) =>
+                                    index === 0 && !row.date
+                                        ? { ...row, date: newDate }
+                                        : row
+                                )
+                            )
+                        }}
                     />
                 </div>
 
@@ -96,87 +142,39 @@ function EntryCreatePage() {
                         ))}
                     </select>
                 </div>
-
-                <div className="col-12 col-md-3">
-                    <label className="form-label">Kategorie</label>
-                    <select
-                        className="form-select"
-                        value={selectedCategoryId}
-                        onChange={handleCategoryChange}
-                    >
-                        <option value="">Kategorie auswählen</option>
-
-                        {categories.map(category => (
-                            <option key={category.categoryId} value={category.categoryId}>
-                                {category.categoryName}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="col-12 col-md-3">
-                    <label className="form-label">Subcategory</label>
-                    <select
-                        className="form-select"
-                        value={selectedSubcategoryId}
-                        onChange={(event) => setSelectedSubcategoryId(event.target.value)}
-                        disabled={!selectedCategoryId}
-                    >
-                        <option value="">Subcategory auswählen</option>
-
-                        {subcategories.map(subcategory => (
-                            <option key={subcategory.id} value={subcategory.id}>
-                                {subcategory.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
             </div>
 
             <div className="card mt-4">
                 <div className="card-body">
-                    <h5 className="card-title">Neuer Eintrag</h5>
+                    <h5 className="card-title">Neue Einträge</h5>
 
-                    <div className="row g-3">
-                        <div className="col-12 col-md-2">
-                            <label className="form-label">Betrag</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                className="form-control"
-                                value={amount}
-                                onChange={(event) => setAmount(event.target.value)}
-                            />
-                        </div>
+                    {entryRows.map((row, index) => (
+                        <EntryRow
+                            key={index}
+                            row={row}
+                            index={index}
+                            categories={categories}
+                            onChange={handleRowChange}
+                            onRemove={removeEntryRow}
+                        />
+                    ))}
 
-                        <div className="col-12 col-md-4">
-                            <label className="form-label">Beschreibung</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                value={description}
-                                onChange={(event) => setDescription(event.target.value)}
-                            />
-                        </div>
+                    <div className="d-flex gap-2 mt-3">
+                        <button
+                            type="button"
+                            className="btn btn-outline-primary"
+                            onClick={addEntryRow}
+                        >
+                            + Zeile hinzufügen
+                        </button>
 
-                        <div className="col-12 col-md-4">
-                            <label className="form-label">Notiz</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                value={note}
-                                onChange={(event) => setNote(event.target.value)}
-                            />
-                        </div>
-
-                        <div className="col-12 col-md-2 d-flex align-items-end">
-                            <button
-                                className="btn btn-primary w-100"
-                                onClick={handleSave}
-                            >
-                                Speichern
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleSaveAll}
+                        >
+                            Alle speichern
+                        </button>
                     </div>
                 </div>
             </div>
