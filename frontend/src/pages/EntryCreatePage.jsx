@@ -7,10 +7,8 @@ import { createEntry } from '../api/entryApi'
 function EntryCreatePage() {
     const [persons, setPersons] = useState([])
     const [categories, setCategories] = useState([])
-
     const [selectedPersonId, setSelectedPersonId] = useState('')
     const [entryDate, setEntryDate] = useState('')
-
     const [entryRows, setEntryRows] = useState([
         {
             date: '',
@@ -21,6 +19,8 @@ function EntryCreatePage() {
             note: ''
         }
     ])
+    const [errorMessage, setErrorMessage] = useState('')
+    const [successMessage, setSuccessMessage] = useState('')
 
     useEffect(() => {
         getPersons()
@@ -39,6 +39,17 @@ function EntryCreatePage() {
                     ? { ...row, [field]: value }
                     : row
             )
+        )
+    }
+
+    function isRowEmpty(row) {
+        return (
+            !row.date &&
+            !row.amount &&
+            !row.description &&
+            !row.categoryId &&
+            !row.subcategoryId &&
+            !row.note
         )
     }
 
@@ -70,14 +81,65 @@ function EntryCreatePage() {
         return Number(String(value).replace(',', '.'))
     }
 
+    function validateEntries(rowsToSave) {
+        if (!selectedPersonId) {
+            return 'Bitte eine Standard-Person auswählen.'
+        }
+
+        if (rowsToSave.length === 0) {
+            return 'Bitte mindestens einen Eintrag ausfüllen.'
+        }
+
+        for (let i = 0; i < rowsToSave.length; i++) {
+            const row = rowsToSave[i]
+            const rowNumber = i + 1
+
+            if (!row.date) {
+                return `Bitte in Zeile ${rowNumber} ein Datum auswählen.`
+            }
+
+            if (!row.amount) {
+                return `Bitte in Zeile ${rowNumber} einen Betrag eingeben.`
+            }
+
+            const parsedAmount = parseAmount(row.amount)
+
+            if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+                return `Bitte in Zeile ${rowNumber} einen gültigen Betrag eingeben.`
+            }
+
+            if (!row.description.trim()) {
+                return `Bitte in Zeile ${rowNumber} eine Beschreibung eingeben.`
+            }
+
+            if (!row.subcategoryId) {
+                return `Bitte in Zeile ${rowNumber} eine Subkategorie auswählen.`
+            }
+        }
+
+        return ''
+    }
+
     function handleSaveAll() {
-        const entries = entryRows.map(row => ({
+        setErrorMessage('')
+        setSuccessMessage('')
+
+        const rowsToSave = entryRows.filter(row => !isRowEmpty(row))
+
+        const validationError = validateEntries(rowsToSave)
+
+        if (validationError) {
+            setErrorMessage(validationError)
+            return
+        }
+
+        const entries = rowsToSave.map(row => ({
             date: row.date,
             amount: parseAmount(row.amount),
-            description: row.description,
+            description: row.description.trim(),
             subcategoryId: Number(row.subcategoryId),
             personId: Number(selectedPersonId),
-            note: row.note || null
+            note: row.note.trim() || null
         }))
 
         console.log('Saving entries:', entries)
@@ -86,9 +148,13 @@ function EntryCreatePage() {
             .then(() => {
                 console.log('All entries saved')
 
+                const lastDate = rowsToSave[rowsToSave.length - 1].date || entryDate
+
+                setSuccessMessage(`${entries.length} Einträge erfolgreich gespeichert.`)
+
                 setEntryRows([
                     {
-                        date: entryDate,
+                        date: lastDate,
                         amount: '',
                         description: '',
                         categoryId: '',
@@ -96,8 +162,13 @@ function EntryCreatePage() {
                         note: ''
                     }
                 ])
+
+                setEntryDate(lastDate)
             })
-            .catch(error => console.error('Error saving entries:', error))
+            .catch(error => {
+                console.error('Error saving entries:', error)
+                setErrorMessage('Beim Speichern ist ein Fehler aufgetreten.')
+            })
     }
 
     return (
@@ -143,7 +214,17 @@ function EntryCreatePage() {
                     </select>
                 </div>
             </div>
+            {errorMessage && (
+                <div className="alert alert-danger mt-3" role="alert">
+                    {errorMessage}
+                </div>
+            )}
 
+            {successMessage && (
+                <div className="alert alert-success mt-3" role="alert">
+                    {successMessage}
+                </div>
+            )}
             <div className="card mt-4">
                 <div className="card-body">
                     <h5 className="card-title mb-4">Neue Einträge</h5>
