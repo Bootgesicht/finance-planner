@@ -10,6 +10,16 @@ export async function getEntries() {
     return response.json()
 }
 
+export async function getLatestEntries(limit = 15) {
+    const response = await fetch(`${API_BASE_URL}/entries/latest?limit=${limit}`)
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch latest entries')
+    }
+
+    return response.json()
+}
+
 export async function createEntry(entry) {
     const response = await fetch(`${API_BASE_URL}/entries`, {
         method: 'POST',

@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.bootgesicht.financeplanner.model.Entry;
+import com.bootgesicht.financeplanner.dto.LatestEntryResponse;
 
 public class EntryRepository {
 
@@ -121,6 +122,56 @@ public class EntryRepository {
             e.printStackTrace();
         }
         return entries;
+    }
+
+    public List<LatestEntryResponse> findLatestEntries(int limit) {
+        List<LatestEntryResponse> latestEntries = new ArrayList<>();
+
+        String sql = """
+                SELECT
+                    e.id,
+                    e.entry_date,
+                    e.amount,
+                    e.description,
+                    p.name AS person_name,
+                    c.name AS category_name,
+                    c.kind AS category_kind,
+                    s.name AS subcategory_name
+                FROM entries e
+                JOIN persons p ON e.person_id = p.id
+                JOIN subcategories s ON e.subcategory_id = s.id
+                JOIN categories c ON s.category_id = c.id
+                ORDER BY e.entry_date DESC, e.id DESC
+                LIMIT ?
+                """;
+
+        try (
+                Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, limit);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    LatestEntryResponse entry = new LatestEntryResponse(
+                            rs.getInt("id"),
+                            rs.getString("entry_date"),
+                            rs.getDouble("amount"),
+                            rs.getString("description"),
+                            rs.getString("person_name"),
+                            rs.getString("category_name"),
+                            rs.getString("subcategory_name"),
+                            rs.getString("category_kind"));
+
+                    latestEntries.add(entry);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return latestEntries;
     }
 
     public void save(Entry entry) {

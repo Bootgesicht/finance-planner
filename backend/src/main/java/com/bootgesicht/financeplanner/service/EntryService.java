@@ -5,6 +5,7 @@ import java.util.List;
 import com.bootgesicht.financeplanner.dto.EntryRequest;
 import com.bootgesicht.financeplanner.model.Entry;
 import com.bootgesicht.financeplanner.repository.EntryRepository;
+import com.bootgesicht.financeplanner.dto.LatestEntryResponse;
 
 public class EntryService {
     private EntryRepository entryRepository = new EntryRepository();
@@ -27,6 +28,10 @@ public class EntryService {
 
     public List<Entry> getEntriesByDateBetween(String entryDateOne, String entryDateTwo) {
         return entryRepository.findByDateBetween(entryDateOne, entryDateTwo);
+    }
+
+    public List<LatestEntryResponse> getLatestEntries(int limit) {
+        return entryRepository.findLatestEntries(limit);
     }
 
     public void createEntry(EntryRequest request) {

@@ -1,24 +1,13 @@
 import { useEffect, useState } from 'react'
 import { getEntries } from '../api/entryApi'
+import { getLatestEntries } from '../api/entryApi'
 
 function LatestEntries() {
     const [latestEntries, setLatestEntries] = useState([])
 
     useEffect(() => {
-        getEntries()
-            .then(data => {
-                const sortedEntries = [...data]
-                    .sort((a, b) => {
-                        if (a.date !== b.date) {
-                            return b.date.localeCompare(a.date)
-                        }
-
-                        return b.id - a.id
-                    })
-                    .slice(0, 15)
-
-                setLatestEntries(sortedEntries)
-            })
+        getLatestEntries(15)
+            .then(data => setLatestEntries(data))
             .catch(error => console.error('Error loading latest entries:', error))
     }, [])
 
@@ -36,19 +25,26 @@ function LatestEntries() {
                                 <tr>
                                     <th>Datum</th>
                                     <th>Beschreibung</th>
-                                    <th>Betrag</th>
+                                    <th>Kategorie</th>
                                     <th>Subkategorie</th>
                                     <th>Person</th>
+                                    <th className="text-end">Betrag</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {latestEntries.map(entry => (
-                                    <tr key={entry.id}>
+                                    <tr
+                                        key={entry.id}
+                                        className={entry.categoryKind === 'INCOME' ? 'table-success' : 'table-danger'}
+                                    >
                                         <td>{entry.date}</td>
                                         <td>{entry.description}</td>
-                                        <td>{entry.amount.toFixed(2)} €</td>
-                                        <td>{entry.subcategoryId}</td>
-                                        <td>{entry.personId}</td>
+                                        <td>{entry.categoryName}</td>
+                                        <td>{entry.subcategoryName}</td>
+                                        <td>{entry.personName}</td>
+                                        <td className="text-end">
+                                            {entry.amount.toFixed(2)} €
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

@@ -6,12 +6,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.bootgesicht.financeplanner.dto.EntryRequest;
 import com.bootgesicht.financeplanner.model.Entry;
 import com.bootgesicht.financeplanner.service.EntryService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import com.bootgesicht.financeplanner.dto.LatestEntryResponse;
 
 @RestController
 @RequestMapping("/entries")
@@ -37,6 +39,12 @@ public class EntryController {
     @GetMapping("/subcategory/{subcategoryId}")
     public List<Entry> getEntriesBySubcategoryId(@PathVariable int subcategoryId) {
         return entryService.getEntriesBySubcategoryId(subcategoryId);
+    }
+
+    @GetMapping("/latest")
+    public List<LatestEntryResponse> getLatestEntries(
+            @RequestParam(defaultValue = "15") int limit) {
+        return entryService.getLatestEntries(limit);
     }
 
     @PostMapping
