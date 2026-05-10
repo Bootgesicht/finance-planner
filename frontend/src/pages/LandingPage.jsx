@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { getEntries } from '../api/entryApi'
+import LatestEntries from '../components/LatestEntries'
 
 function LandingPage() {
     return (
-        <div className="container mt-4">
+        <div className="container mt-4 pb-5">
             <h1>Family Finance Planner</h1>
             <p className="text-muted">
                 Track expenses, manage entries and analyze household finances.
@@ -51,6 +54,7 @@ function LandingPage() {
                     </div>
                 </div>
             </div>
+            <LatestEntries />
         </div>
     )
 }

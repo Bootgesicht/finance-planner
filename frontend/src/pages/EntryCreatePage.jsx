@@ -146,7 +146,7 @@ function EntryCreatePage() {
 
             <div className="card mt-4">
                 <div className="card-body">
-                    <h5 className="card-title">Neue Einträge</h5>
+                    <h5 className="card-title mb-4">Neue Einträge</h5>
 
                     {entryRows.map((row, index) => (
                         <EntryRow

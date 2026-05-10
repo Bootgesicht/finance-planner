@@ -4,6 +4,18 @@ import { getSubcategoriesByCategoryId } from '../api/subcategoryApi'
 function EntryRow({ row, index, categories, onChange, onRemove }) {
     const [subcategories, setSubcategories] = useState([])
 
+    const selectedCategory = categories.find(
+        category => String(category.categoryId) === String(row.categoryId)
+    )
+
+    let rowBackgroundClass = ''
+
+    if (selectedCategory?.categoryKind === 'INCOME') {
+        rowBackgroundClass = 'bg-success-subtle border border-success-subtle'
+    } else if (selectedCategory?.categoryKind === 'EXPENSE') {
+        rowBackgroundClass = 'bg-danger-subtle border border-danger-subtle'
+    }
+
     useEffect(() => {
         if (!row.categoryId) {
             setSubcategories([])
@@ -16,7 +28,7 @@ function EntryRow({ row, index, categories, onChange, onRemove }) {
     }, [row.categoryId])
 
     return (
-        <div className="row g-3 align-items-end mb-3">
+        <div className={`row g-3 align-items-end mb-3 p-3 rounded ${rowBackgroundClass}`}>
             <div className="col-12 col-md-2">
                 <label className="form-label">Datum</label>
                 <input
@@ -99,8 +111,9 @@ function EntryRow({ row, index, categories, onChange, onRemove }) {
             <div className="col-12 col-md-1">
                 <button
                     type="button"
-                    className="btn btn-outline-danger w-100"
+                    className="btn btn-outline-dark w-100"
                     onClick={() => onRemove(index)}
+                    aria-label="Eintrag entfernen"
                 >
                     X
                 </button>
