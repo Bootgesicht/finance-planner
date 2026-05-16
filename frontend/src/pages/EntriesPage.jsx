@@ -419,6 +419,7 @@ function EntriesPage() {
                                         <th>Datum</th>
                                         <th className="text-end">Betrag</th>
                                         <th>Beschreibung</th>
+                                        <th>Person</th>
                                         <th>Kategorie</th>
                                         <th>Subkategorie</th>
                                         <th>Notiz</th>
@@ -462,6 +463,22 @@ function EntriesPage() {
                                                                 value={editForm.description}
                                                                 onChange={(event) => handleEditFormChange('description', event.target.value)}
                                                             />
+                                                        </td>
+
+                                                        <td>
+                                                            <select
+                                                                className="form-select form-select-sm"
+                                                                value={editForm.personId}
+                                                                onChange={(event) => handleEditFormChange('personId', event.target.value)}
+                                                            >
+                                                                <option value="">Person</option>
+
+                                                                {persons.map(person => (
+                                                                    <option key={person.personId} value={person.personId}>
+                                                                        {person.personName}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
                                                         </td>
 
                                                         <td>
@@ -533,6 +550,7 @@ function EntriesPage() {
                                                             {formatAmount(entry.amount)} €
                                                         </td>
                                                         <td>{entry.description}</td>
+                                                        <td>{entry.personName}</td>
                                                         <td>{entry.categoryName}</td>
                                                         <td>{entry.subcategoryName}</td>
                                                         <td>{entry.note || '-'}</td>
