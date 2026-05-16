@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { getPersons } from '../api/personApi'
+import { getPersons, createPerson } from '../api/personApi'
 import { getCategories, createCategory } from '../api/categoryApi'
-import { getSubcategories } from '../api/subcategoryApi'
+import { getSubcategories, createSubcategory } from '../api/subcategoryApi'
 
 function ManagementPage() {
     const [persons, setPersons] = useState([])
@@ -9,8 +9,11 @@ function ManagementPage() {
     const [subcategories, setSubcategories] = useState([])
     const [newCategoryName, setNewCategoryName] = useState('')
     const [newCategoryKind, setNewCategoryKind] = useState('EXPENSE')
+    const [newSubcategoryName, setNewSubcategoryName] = useState('')
+    const [newSubcategoryCategoryId, setNewSubcategoryCategoryId] = useState('')
+    const [newPersonName, setNewPersonName] = useState('')
+    const [newPersonRole, setNewPersonRole] = useState('ADULT')
     const [successMessage, setSuccessMessage] = useState('')
-
     const [errorMessage, setErrorMessage] = useState('')
 
     function loadMasterData() {
@@ -63,6 +66,69 @@ function ManagementPage() {
             })
     }
 
+    function handleCreatePerson(event) {
+        event.preventDefault()
+
+        setErrorMessage('')
+        setSuccessMessage('')
+
+        if (!newPersonName.trim()) {
+            setErrorMessage('Bitte einen Personennamen eingeben.')
+            return
+        }
+
+        const person = {
+            name: newPersonName.trim(),
+            role: newPersonRole
+        }
+
+        createPerson(person)
+            .then(() => {
+                setSuccessMessage(`Person "${person.name}" wurde erstellt.`)
+                setNewPersonName('')
+                setNewPersonRole('ADULT')
+                loadMasterData()
+            })
+            .catch(error => {
+                console.error('Error creating person:', error)
+                setErrorMessage('Person konnte nicht erstellt werden.')
+            })
+    }
+
+    function handleCreateSubcategory(event) {
+        event.preventDefault()
+
+        setErrorMessage('')
+        setSuccessMessage('')
+
+        if (!newSubcategoryName.trim()) {
+            setErrorMessage('Bitte einen Namen für die Subkategorie eingeben.')
+            return
+        }
+
+        if (!newSubcategoryCategoryId) {
+            setErrorMessage('Bitte eine Kategorie für die Subkategorie auswählen.')
+            return
+        }
+
+        const subcategory = {
+            name: newSubcategoryName.trim(),
+            categoryId: Number(newSubcategoryCategoryId)
+        }
+
+        createSubcategory(subcategory)
+            .then(() => {
+                setSuccessMessage(`Subkategorie "${subcategory.name}" wurde erstellt.`)
+                setNewSubcategoryName('')
+                setNewSubcategoryCategoryId('')
+                loadMasterData()
+            })
+            .catch(error => {
+                console.error('Error creating subcategory:', error)
+                setErrorMessage('Subkategorie konnte nicht erstellt werden.')
+            })
+    }
+
     function getCategoryNameById(categoryId) {
         const category = categories.find(
             category => String(category.categoryId) === String(categoryId)
@@ -95,7 +161,35 @@ function ManagementPage() {
                     <div className="card h-100">
                         <div className="card-body">
                             <h5 className="card-title">Personen</h5>
+                            <form className="mb-3" onSubmit={handleCreatePerson}>
+                                <div className="mb-2">
+                                    <label className="form-label">Neue Person</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={newPersonName}
+                                        onChange={(event) => setNewPersonName(event.target.value)}
+                                        placeholder="z. B. Familie"
+                                    />
+                                </div>
 
+                                <div className="mb-2">
+                                    <label className="form-label">Rolle</label>
+                                    <select
+                                        className="form-select"
+                                        value={newPersonRole}
+                                        onChange={(event) => setNewPersonRole(event.target.value)}
+                                    >
+                                        <option value="ADULT">Erwachsen</option>
+                                        <option value="CHILD">Kind</option>
+                                        <option value="HOUSEHOLD">Haushalt / Familie</option>
+                                    </select>
+                                </div>
+
+                                <button type="submit" className="btn btn-primary w-100">
+                                    Person erstellen
+                                </button>
+                            </form>
                             <div className="table-responsive">
                                 <table className="table table-sm align-middle">
                                     <thead>
@@ -178,7 +272,39 @@ function ManagementPage() {
                     <div className="card h-100">
                         <div className="card-body">
                             <h5 className="card-title">Subkategorien</h5>
+                            <form className="mb-3" onSubmit={handleCreateSubcategory}>
+                                <div className="mb-2">
+                                    <label className="form-label">Neue Subkategorie</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={newSubcategoryName}
+                                        onChange={(event) => setNewSubcategoryName(event.target.value)}
+                                        placeholder="z. B. ETF-Sparplan"
+                                    />
+                                </div>
 
+                                <div className="mb-2">
+                                    <label className="form-label">Kategorie</label>
+                                    <select
+                                        className="form-select"
+                                        value={newSubcategoryCategoryId}
+                                        onChange={(event) => setNewSubcategoryCategoryId(event.target.value)}
+                                    >
+                                        <option value="">Kategorie auswählen</option>
+
+                                        {categories.map(category => (
+                                            <option key={category.categoryId} value={category.categoryId}>
+                                                {category.categoryName} ({category.categoryKind})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <button type="submit" className="btn btn-primary w-100">
+                                    Subkategorie erstellen
+                                </button>
+                            </form>
                             <div className="table-responsive" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                                 <table className="table table-sm align-middle">
                                     <thead>

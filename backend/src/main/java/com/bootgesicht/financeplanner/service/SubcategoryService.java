@@ -2,6 +2,7 @@ package com.bootgesicht.financeplanner.service;
 
 import java.util.List;
 
+import com.bootgesicht.financeplanner.dto.SubcategoryRequest;
 import com.bootgesicht.financeplanner.model.Subcategory;
 import com.bootgesicht.financeplanner.repository.SubcategoryRepository;
 
@@ -26,6 +27,15 @@ public class SubcategoryService {
 
     public void createSubcategory(Subcategory subCategory) {
         subcategoryRepository.save(subCategory);
+    }
+
+    public void createSubcategory(SubcategoryRequest request) {
+        Subcategory subcategory = new Subcategory(
+                0,
+                request.getCategoryId(),
+                request.getName());
+
+        subcategoryRepository.save(subcategory);
     }
 
     public void deleteSubcategoryById(int id) {

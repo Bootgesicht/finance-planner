@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import LandingPage from './pages/LandingPage'
 import EntryCreatePage from './pages/EntryCreatePage'
+import EntriesPage from './pages/EntriesPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import ManagementPage from './pages/ManagementPage'
 
@@ -13,6 +14,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/entries/new" element={<EntryCreatePage />} />
+        <Route path="/entries" element={<EntriesPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/management" element={<ManagementPage />} />
       </Routes>

@@ -5,7 +5,6 @@ import java.util.List;
 import com.bootgesicht.financeplanner.dto.CategoryRequest;
 import com.bootgesicht.financeplanner.model.Category;
 import com.bootgesicht.financeplanner.repository.CategoryRepository;
-import com.bootgesicht.financeplanner.dto.CategoryRequest;
 
 public class CategoryService {
 

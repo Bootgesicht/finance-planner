@@ -26,6 +26,20 @@ function LandingPage() {
                     </div>
                 </div>
 
+                <div className="col-md-3">
+                    <div className="card h-100">
+                        <div className="card-body">
+                            <h5 className="card-title">Einträge</h5>
+                            <p className="card-text">
+                                Suche, filtere und bearbeite erfasste Einträge.
+                            </p>
+                            <Link to="/entries" className="btn btn-outline-primary">
+                                Einträge öffnen
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="col-md-4">
                     <div className="card h-100">
                         <div className="card-body">

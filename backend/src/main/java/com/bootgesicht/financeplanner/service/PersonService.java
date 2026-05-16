@@ -2,6 +2,7 @@ package com.bootgesicht.financeplanner.service;
 
 import java.util.List;
 
+import com.bootgesicht.financeplanner.dto.PersonRequest;
 import com.bootgesicht.financeplanner.model.Person;
 import com.bootgesicht.financeplanner.repository.PersonRepository;
 
@@ -22,6 +23,15 @@ public class PersonService {
     }
 
     public void createPerson(Person person) {
+        personRepository.save(person);
+    }
+
+    public void createPerson(PersonRequest request) {
+        Person person = new Person(
+                0,
+                request.getName(),
+                request.getRole());
+
         personRepository.save(person);
     }
 

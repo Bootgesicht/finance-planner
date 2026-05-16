@@ -9,3 +9,17 @@ export async function getPersons() {
 
     return response.json()
 }
+
+export async function createPerson(person) {
+    const response = await fetch(`${API_BASE_URL}/persons`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(person)
+    })
+
+    if (!response.ok) {
+        throw new Error('Failed to create person')
+    }
+}

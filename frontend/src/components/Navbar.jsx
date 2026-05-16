@@ -22,6 +22,15 @@ function Navbar() {
                         className={({ isActive }) =>
                             isActive ? 'nav-link active fw-semibold' : 'nav-link'
                         }
+                        to="/entries"
+                    >
+                        Einträge
+                    </NavLink>
+
+                    <NavLink
+                        className={({ isActive }) =>
+                            isActive ? 'nav-link active fw-semibold' : 'nav-link'
+                        }
                         to="/analytics"
                     >
                         Analytics

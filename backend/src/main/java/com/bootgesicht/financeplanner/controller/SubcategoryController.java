@@ -4,9 +4,12 @@ import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.bootgesicht.financeplanner.dto.SubcategoryRequest;
 import com.bootgesicht.financeplanner.model.Subcategory;
 import com.bootgesicht.financeplanner.service.SubcategoryService;
 
@@ -28,5 +31,10 @@ public class SubcategoryController {
     @GetMapping("/category/{categoryId}")
     public List<Subcategory> getSubcategoriesByCategoryId(@PathVariable int categoryId) {
         return subcategoryService.getSubcategoriesByCategoryId(categoryId);
+    }
+
+    @PostMapping
+    public void createSubcategory(@RequestBody SubcategoryRequest request) {
+        subcategoryService.createSubcategory(request);
     }
 }

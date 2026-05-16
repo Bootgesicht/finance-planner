@@ -2,6 +2,7 @@ package com.bootgesicht.financeplanner.service;
 
 import java.util.List;
 
+import com.bootgesicht.financeplanner.dto.EntryOverviewResponse;
 import com.bootgesicht.financeplanner.dto.EntryRequest;
 import com.bootgesicht.financeplanner.model.Entry;
 import com.bootgesicht.financeplanner.repository.EntryRepository;
@@ -34,6 +35,23 @@ public class EntryService {
         return entryRepository.findLatestEntries(limit);
     }
 
+    public List<EntryOverviewResponse> searchEntries(
+            String startDate,
+            String endDate,
+            Integer personId,
+            Integer categoryId,
+            Integer subcategoryId,
+            String description) {
+
+        return entryRepository.searchEntries(
+                startDate,
+                endDate,
+                personId,
+                categoryId,
+                subcategoryId,
+                description);
+    }
+
     public void createEntry(EntryRequest request) {
         Entry entry = new Entry(
                 0, // id wird von DB gesetzt
@@ -47,6 +65,21 @@ public class EntryService {
                 null);
 
         entryRepository.save(entry);
+    }
+
+    public void updateEntry(int id, EntryRequest request) {
+        Entry entry = new Entry(
+                id,
+                request.getDate(),
+                request.getAmount(),
+                request.getDescription(),
+                request.getSubcategoryId(),
+                request.getPersonId(),
+                request.getNote(),
+                null,
+                null);
+
+        entryRepository.updateById(id, entry);
     }
 
     public void deleteEntryById(int id) {

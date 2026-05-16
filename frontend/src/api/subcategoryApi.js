@@ -19,3 +19,17 @@ export async function getSubcategoriesByCategoryId(categoryId) {
 
     return response.json()
 }
+
+export async function createSubcategory(subcategory) {
+    const response = await fetch(`${API_BASE_URL}/subcategories`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(subcategory)
+    })
+
+    if (!response.ok) {
+        throw new Error('Failed to create subcategory')
+    }
+}
