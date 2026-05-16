@@ -2,8 +2,10 @@ package com.bootgesicht.financeplanner.service;
 
 import java.util.List;
 
+import com.bootgesicht.financeplanner.dto.CategoryRequest;
 import com.bootgesicht.financeplanner.model.Category;
 import com.bootgesicht.financeplanner.repository.CategoryRepository;
+import com.bootgesicht.financeplanner.dto.CategoryRequest;
 
 public class CategoryService {
 
@@ -22,6 +24,15 @@ public class CategoryService {
     }
 
     public void createCategory(Category category) {
+        categoryRepository.save(category);
+    }
+
+    public void createCategory(CategoryRequest request) {
+        Category category = new Category(
+                0,
+                request.getName(),
+                request.getKind());
+
         categoryRepository.save(category);
     }
 

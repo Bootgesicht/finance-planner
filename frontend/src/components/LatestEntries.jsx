@@ -5,6 +5,22 @@ import { getLatestEntries } from '../api/entryApi'
 function LatestEntries() {
     const [latestEntries, setLatestEntries] = useState([])
 
+    function getEntryRowClass(categoryKind) {
+        if (categoryKind === 'INCOME') {
+            return 'table-success'
+        }
+
+        if (categoryKind === 'EXPENSE') {
+            return 'table-danger'
+        }
+
+        if (categoryKind === 'SAVING') {
+            return 'table-info'
+        }
+
+        return ''
+    }
+
     useEffect(() => {
         getLatestEntries(15)
             .then(data => setLatestEntries(data))
@@ -33,10 +49,7 @@ function LatestEntries() {
                             </thead>
                             <tbody>
                                 {latestEntries.map(entry => (
-                                    <tr
-                                        key={entry.id}
-                                        className={entry.categoryKind === 'INCOME' ? 'table-success' : 'table-danger'}
-                                    >
+                                    <tr key={entry.id} className={getEntryRowClass(entry.categoryKind)}>
                                         <td>{entry.date}</td>
                                         <td>{entry.description}</td>
                                         <td>{entry.categoryName}</td>

@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react'
 import { getPersons } from '../api/personApi'
-import { getCategories } from '../api/categoryApi'
+import { getCategories, createCategory } from '../api/categoryApi'
 import { getSubcategories } from '../api/subcategoryApi'
 
 function ManagementPage() {
     const [persons, setPersons] = useState([])
     const [categories, setCategories] = useState([])
     const [subcategories, setSubcategories] = useState([])
+    const [newCategoryName, setNewCategoryName] = useState('')
+    const [newCategoryKind, setNewCategoryKind] = useState('EXPENSE')
+    const [successMessage, setSuccessMessage] = useState('')
 
     const [errorMessage, setErrorMessage] = useState('')
 
-    useEffect(() => {
+    function loadMasterData() {
         Promise.all([
             getPersons(),
             getCategories(),
@@ -25,7 +28,40 @@ function ManagementPage() {
                 console.error('Error loading management data:', error)
                 setErrorMessage('Stammdaten konnten nicht geladen werden.')
             })
+    }
+
+    useEffect(() => {
+        loadMasterData()
     }, [])
+
+    function handleCreateCategory(event) {
+        event.preventDefault()
+
+        setErrorMessage('')
+        setSuccessMessage('')
+
+        if (!newCategoryName.trim()) {
+            setErrorMessage('Bitte einen Kategorienamen eingeben.')
+            return
+        }
+
+        const category = {
+            name: newCategoryName.trim(),
+            kind: newCategoryKind
+        }
+
+        createCategory(category)
+            .then(() => {
+                setSuccessMessage(`Kategorie "${category.name}" wurde erstellt.`)
+                setNewCategoryName('')
+                setNewCategoryKind('EXPENSE')
+                loadMasterData()
+            })
+            .catch(error => {
+                console.error('Error creating category:', error)
+                setErrorMessage('Kategorie konnte nicht erstellt werden.')
+            })
+    }
 
     function getCategoryNameById(categoryId) {
         const category = categories.find(
@@ -45,6 +81,12 @@ function ManagementPage() {
             {errorMessage && (
                 <div className="alert alert-danger mt-3" role="alert">
                     {errorMessage}
+                </div>
+            )}
+
+            {successMessage && (
+                <div className="alert alert-success mt-3" role="alert">
+                    {successMessage}
                 </div>
             )}
 
@@ -80,6 +122,35 @@ function ManagementPage() {
                     <div className="card h-100">
                         <div className="card-body">
                             <h5 className="card-title">Kategorien</h5>
+                            <form className="mb-3" onSubmit={handleCreateCategory}>
+                                <div className="mb-2">
+                                    <label className="form-label">Neue Kategorie</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={newCategoryName}
+                                        onChange={(event) => setNewCategoryName(event.target.value)}
+                                        placeholder="z. B. Arbeit"
+                                    />
+                                </div>
+
+                                <div className="mb-2">
+                                    <label className="form-label">Art</label>
+                                    <select
+                                        className="form-select"
+                                        value={newCategoryKind}
+                                        onChange={(event) => setNewCategoryKind(event.target.value)}
+                                    >
+                                        <option value="EXPENSE">Ausgabe</option>
+                                        <option value="INCOME">Einnahme</option>
+                                        <option value="SAVING">Sparen / Investieren</option>
+                                    </select>
+                                </div>
+
+                                <button type="submit" className="btn btn-primary w-100">
+                                    Kategorie erstellen
+                                </button>
+                            </form>
 
                             <div className="table-responsive">
                                 <table className="table table-sm align-middle">
@@ -108,7 +179,7 @@ function ManagementPage() {
                         <div className="card-body">
                             <h5 className="card-title">Subkategorien</h5>
 
-                            <div className="table-responsive">
+                            <div className="table-responsive" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                                 <table className="table table-sm align-middle">
                                     <thead>
                                         <tr>

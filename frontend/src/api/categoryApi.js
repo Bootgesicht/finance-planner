@@ -9,3 +9,17 @@ export async function getCategories() {
 
     return response.json()
 }
+
+export async function createCategory(category) {
+    const response = await fetch(`${API_BASE_URL}/categories`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(category)
+    })
+
+    if (!response.ok) {
+        throw new Error('Failed to create category')
+    }
+}

@@ -14,6 +14,8 @@ function EntryRow({ row, index, categories, onChange, onRemove }) {
         rowBackgroundClass = 'bg-success-subtle border border-success-subtle'
     } else if (selectedCategory?.categoryKind === 'EXPENSE') {
         rowBackgroundClass = 'bg-danger-subtle border border-danger-subtle'
+    } else if (selectedCategory?.categoryKind === 'SAVING') {
+        rowBackgroundClass = 'bg-info-subtle border border-info-subtle'
     }
 
     useEffect(() => {

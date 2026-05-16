@@ -4,9 +4,12 @@ import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.bootgesicht.financeplanner.dto.CategoryRequest;
 import com.bootgesicht.financeplanner.model.Category;
 import com.bootgesicht.financeplanner.service.CategoryService;
 
@@ -24,5 +27,10 @@ public class CategoryController {
     @GetMapping("/{id}")
     public Category getCategoryById(@PathVariable int id) {
         return categoryService.getCategoryById(id);
+    }
+
+    @PostMapping
+    public void createCategory(@RequestBody CategoryRequest request) {
+        categoryService.createCategory(request);
     }
 }
