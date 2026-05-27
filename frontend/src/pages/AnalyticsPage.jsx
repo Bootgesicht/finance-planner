@@ -54,10 +54,12 @@ function AnalyticsPage() {
 
     return (
         <div className="container mt-4 pb-5">
-            <h1>Analytics</h1>
-            <p className="text-muted">
-                Monatsübersicht für Einkommen, Ausgaben, Sparen und freien Saldo.
-            </p>
+            <div className="mb-4">
+                <h1>Analytics</h1>
+                <p className="text-muted mb-0">
+                    Monatsübersicht für Einkommen, Ausgaben, Sparen und freien Saldo.
+                </p>
+            </div>
 
             {errorMessage && (
                 <div className="alert alert-danger mt-3" role="alert">
@@ -70,6 +72,33 @@ function AnalyticsPage() {
                     {successMessage}
                 </div>
             )}
+
+            <div className="card mb-4">
+                <div className="card-body">
+                    <h5 className="card-title mb-3">Analytics-Bereiche</h5>
+
+                    <nav className="nav nav-pills flex-wrap gap-2">
+                        <a className="nav-link active" href="#monthly-balance">
+                            Monats-Saldo
+                        </a>
+                        <a className="nav-link" href="#category-summary">
+                            Kategorien
+                        </a>
+                        <a className="nav-link" href="#subcategory-summary">
+                            Subkategorien
+                        </a>
+                        <a className="nav-link" href="#person-summary">
+                            Personen
+                        </a>
+                        <a className="nav-link" href="#savings-summary">
+                            Sparen
+                        </a>
+                        <a className="nav-link" href="#year-comparison">
+                            Jahresvergleich
+                        </a>
+                    </nav>
+                </div>
+            </div>
 
             <div className="card mt-4">
                 <div className="card-body">
@@ -97,7 +126,7 @@ function AnalyticsPage() {
                 </div>
             </div>
 
-            <div className="card mt-4">
+            <section id="monthly-balance" className="card mt-4">
                 <div className="card-body">
                     <h5 className="card-title mb-3">Monats-Saldo</h5>
 
@@ -142,7 +171,52 @@ function AnalyticsPage() {
                         </div>
                     )}
                 </div>
-            </div>
+            </section>
+
+            <section id="category-summary" className="card mt-4">
+                <div className="card-body">
+                    <h5 className="card-title mb-2">Ausgaben nach Kategorien</h5>
+                    <p className="text-muted mb-0">
+                        Folgt als nächster Analytics-Baustein.
+                    </p>
+                </div>
+            </section>
+
+            <section id="subcategory-summary" className="card mt-4">
+                <div className="card-body">
+                    <h5 className="card-title mb-2">Ausgaben nach Subkategorien</h5>
+                    <p className="text-muted mb-0">
+                        Detailauswertung innerhalb einzelner Kategorien.
+                    </p>
+                </div>
+            </section>
+
+            <section id="person-summary" className="card mt-4">
+                <div className="card-body">
+                    <h5 className="card-title mb-2">Ausgaben nach Personen</h5>
+                    <p className="text-muted mb-0">
+                        Zeigt später die fachliche Zuordnung der Ausgaben.
+                    </p>
+                </div>
+            </section>
+
+            <section id="savings-summary" className="card mt-4">
+                <div className="card-body">
+                    <h5 className="card-title mb-2">Sparen & Investieren</h5>
+                    <p className="text-muted mb-0">
+                        Übersicht über Sparraten und Investments.
+                    </p>
+                </div>
+            </section>
+
+            <section id="year-comparison" className="card mt-4">
+                <div className="card-body">
+                    <h5 className="card-title mb-2">Jahresvergleich</h5>
+                    <p className="text-muted mb-0">
+                        Vergleich von Monaten über mehrere Jahre.
+                    </p>
+                </div>
+            </section>
         </div>
     )
 }

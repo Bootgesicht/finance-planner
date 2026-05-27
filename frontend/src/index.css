@@ -4,6 +4,10 @@ body {
   background-color: #f8f9fa;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 /*
 :root {
   --text: #6b6375;
