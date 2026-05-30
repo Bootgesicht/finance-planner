@@ -52,6 +52,20 @@ function AnalyticsPage() {
         return ''
     }
 
+    const latestMonthBalance = monthlyBalance.length > 0
+        ? monthlyBalance[monthlyBalance.length - 1]
+        : null
+
+    function formatMonth(monthString) {
+        const [year, month] = monthString.split('-')
+        const date = new Date(Number(year), Number(month) - 1)
+
+        return date.toLocaleDateString('de-DE', {
+            month: 'long',
+            year: 'numeric'
+        })
+    }
+
     return (
         <div className="container mt-4 pb-5">
             <div className="mb-4">
@@ -125,6 +139,60 @@ function AnalyticsPage() {
                     </form>
                 </div>
             </div>
+
+            {latestMonthBalance && (
+                <div className="row g-3 mt-4">
+                    <div className="col-12">
+                        <h5 className="mb-0">
+                            Übersicht {formatMonth(latestMonthBalance.month)}
+                        </h5>
+                    </div>
+
+                    <div className="col-12 col-md-3">
+                        <div className="card h-100 border-success">
+                            <div className="card-body">
+                                <p className="text-muted mb-1">Einkommen</p>
+                                <h4 className="text-success mb-0">
+                                    {formatAmount(latestMonthBalance.income)} €
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="col-12 col-md-3">
+                        <div className="card h-100 border-danger">
+                            <div className="card-body">
+                                <p className="text-muted mb-1">Ausgaben</p>
+                                <h4 className="text-danger mb-0">
+                                    {formatAmount(latestMonthBalance.expenses)} €
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="col-12 col-md-3">
+                        <div className="card h-100 border-info">
+                            <div className="card-body">
+                                <p className="text-muted mb-1">Sparen</p>
+                                <h4 className="text-info mb-0">
+                                    {formatAmount(latestMonthBalance.savings)} €
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="col-12 col-md-3">
+                        <div className={`card h-100 ${latestMonthBalance.freeBalanceAfterSavings >= 0 ? 'border-success' : 'border-danger'}`}>
+                            <div className="card-body">
+                                <p className="text-muted mb-1">Freier Saldo</p>
+                                <h4 className={`${getBalanceClass(latestMonthBalance.freeBalanceAfterSavings)} mb-0`}>
+                                    {formatAmount(latestMonthBalance.freeBalanceAfterSavings)} €
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <section id="monthly-balance" className="card mt-4">
                 <div className="card-body">
