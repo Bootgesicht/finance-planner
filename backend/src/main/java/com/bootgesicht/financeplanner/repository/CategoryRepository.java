@@ -6,10 +6,20 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.springframework.stereotype.Repository;
+
 import com.bootgesicht.financeplanner.model.Category;
 import com.bootgesicht.financeplanner.model.CategoryKind;
 
+@Repository
 public class CategoryRepository {
+
+    private DatabaseConnection databaseConnection;
+
+    public CategoryRepository(DatabaseConnection databaseConnection) {
+        this.databaseConnection = databaseConnection;
+    }
 
     public List<Category> findAll() {
         List<Category> categories = new ArrayList<>();
@@ -17,20 +27,19 @@ public class CategoryRepository {
         String sql = """
                 SELECT id, name, kind
                 FROM categories
-                        """;
+                """;
 
         try (
-                Connection conn = DatabaseConnection.getConnection();
+                Connection conn = databaseConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery();) {
-
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-
                 categories.add(mapRowToCategory(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return categories;
     }
 
@@ -39,19 +48,22 @@ public class CategoryRepository {
                 SELECT id, name, kind
                 FROM categories
                 WHERE name = ?
-                        """;
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
+                """;
+
+        try (
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, name);
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapRowToCategory(rs);
                 }
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return null;
     }
 
@@ -60,19 +72,22 @@ public class CategoryRepository {
                 SELECT id, name, kind
                 FROM categories
                 WHERE id = ?
-                        """;
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
+                """;
+
+        try (
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapRowToCategory(rs);
                 }
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return null;
     }
 
@@ -81,13 +96,13 @@ public class CategoryRepository {
                 INSERT INTO categories (name, kind)
                 VALUES (?, ?)
                 """;
+
         try (
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, category.getCategoryName());
             ps.setString(2, category.getCategoryKind().name());
             ps.executeUpdate();
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -100,11 +115,10 @@ public class CategoryRepository {
                 """;
 
         try (
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
             ps.executeUpdate();
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -116,5 +130,4 @@ public class CategoryRepository {
                 rs.getString("name"),
                 CategoryKind.valueOf(rs.getString("kind")));
     }
-
 }

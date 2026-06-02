@@ -2,14 +2,22 @@ package com.bootgesicht.financeplanner.service;
 
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import com.bootgesicht.financeplanner.dto.EntryOverviewResponse;
 import com.bootgesicht.financeplanner.dto.EntryRequest;
+import com.bootgesicht.financeplanner.dto.LatestEntryResponse;
 import com.bootgesicht.financeplanner.model.Entry;
 import com.bootgesicht.financeplanner.repository.EntryRepository;
-import com.bootgesicht.financeplanner.dto.LatestEntryResponse;
 
+@Service
 public class EntryService {
-    private EntryRepository entryRepository = new EntryRepository();
+
+    private EntryRepository entryRepository;
+
+    public EntryService(EntryRepository entryRepository) {
+        this.entryRepository = entryRepository;
+    }
 
     public List<Entry> getAllEntries() {
         return entryRepository.findAll();
@@ -19,8 +27,8 @@ public class EntryService {
         return entryRepository.findById(id);
     }
 
-    public List<Entry> getEntriesBySubcategoryId(int subcategoryid) {
-        return entryRepository.findBySubcategoryId(subcategoryid);
+    public List<Entry> getEntriesBySubcategoryId(int subcategoryId) {
+        return entryRepository.findBySubcategoryId(subcategoryId);
     }
 
     public List<Entry> getEntriesByPersonId(int personId) {
@@ -54,7 +62,7 @@ public class EntryService {
 
     public void createEntry(EntryRequest request) {
         Entry entry = new Entry(
-                0, // id wird von DB gesetzt
+                0,
                 request.getDate(),
                 request.getAmount(),
                 request.getDescription(),
@@ -85,5 +93,4 @@ public class EntryService {
     public void deleteEntryById(int id) {
         entryRepository.deleteById(id);
     }
-
 }

@@ -6,27 +6,39 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.springframework.stereotype.Repository;
+
 import com.bootgesicht.financeplanner.model.Subcategory;
 
+@Repository
 public class SubcategoryRepository {
+
+    private DatabaseConnection databaseConnection;
+
+    public SubcategoryRepository(DatabaseConnection databaseConnection) {
+        this.databaseConnection = databaseConnection;
+    }
 
     public List<Subcategory> findAll() {
         List<Subcategory> subCategories = new ArrayList<>();
+
         String sql = """
                 SELECT id, category_id, name
                 FROM subcategories
-                        """;
-        try (
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery();) {
+                """;
 
+        try (
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 subCategories.add(mapRowToSubCategory(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return subCategories;
     }
 
@@ -35,19 +47,22 @@ public class SubcategoryRepository {
                 SELECT id, category_id, name
                 FROM subcategories
                 WHERE name = ?
-                        """;
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
+                """;
+
+        try (
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, name);
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapRowToSubCategory(rs);
                 }
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return null;
     }
 
@@ -56,10 +71,13 @@ public class SubcategoryRepository {
                 SELECT id, category_id, name
                 FROM subcategories
                 WHERE id = ?
-                        """;
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
+                """;
+
+        try (
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapRowToSubCategory(rs);
@@ -68,19 +86,24 @@ public class SubcategoryRepository {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return null;
     }
 
     public List<Subcategory> getSubcategoriesByCategoryId(int categoryId) {
         List<Subcategory> subCategories = new ArrayList<>();
+
         String sql = """
                 SELECT id, category_id, name
                 FROM subcategories
                 WHERE category_id = ?
-                        """;
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
+                """;
+
+        try (
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, categoryId);
+
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     subCategories.add(mapRowToSubCategory(rs));
@@ -89,6 +112,7 @@ public class SubcategoryRepository {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return subCategories;
     }
 
@@ -97,9 +121,10 @@ public class SubcategoryRepository {
                 INSERT INTO subcategories (category_id, name)
                 VALUES (?, ?)
                 """;
+
         try (
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, subCategory.getCategoryId());
             ps.setString(2, subCategory.getName());
             ps.executeUpdate();
@@ -115,8 +140,8 @@ public class SubcategoryRepository {
                 """;
 
         try (
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
             ps.executeUpdate();
         } catch (SQLException e) {

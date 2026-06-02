@@ -16,7 +16,12 @@ import com.bootgesicht.financeplanner.service.SubcategoryService;
 @RestController
 @RequestMapping("/subcategories")
 public class SubcategoryController {
-    private SubcategoryService subcategoryService = new SubcategoryService();
+
+    private SubcategoryService subcategoryService;
+
+    public SubcategoryController(SubcategoryService subcategoryService) {
+        this.subcategoryService = subcategoryService;
+    }
 
     @GetMapping
     public List<Subcategory> getAllSubcategories() {

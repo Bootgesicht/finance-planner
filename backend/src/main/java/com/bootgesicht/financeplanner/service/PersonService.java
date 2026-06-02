@@ -2,13 +2,20 @@ package com.bootgesicht.financeplanner.service;
 
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import com.bootgesicht.financeplanner.dto.PersonRequest;
 import com.bootgesicht.financeplanner.model.Person;
 import com.bootgesicht.financeplanner.repository.PersonRepository;
 
+@Service
 public class PersonService {
 
-    private PersonRepository personRepository = new PersonRepository();
+    private PersonRepository personRepository;
+
+    public PersonService(PersonRepository personRepository) {
+        this.personRepository = personRepository;
+    }
 
     public List<Person> getAllPersons() {
         return personRepository.findAll();

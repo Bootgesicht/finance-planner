@@ -2,12 +2,20 @@ package com.bootgesicht.financeplanner.service;
 
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import com.bootgesicht.financeplanner.dto.SubcategoryRequest;
 import com.bootgesicht.financeplanner.model.Subcategory;
 import com.bootgesicht.financeplanner.repository.SubcategoryRepository;
 
+@Service
 public class SubcategoryService {
-    private SubcategoryRepository subcategoryRepository = new SubcategoryRepository();
+
+    private final SubcategoryRepository subcategoryRepository;
+
+    public SubcategoryService(SubcategoryRepository subcategoryRepository) {
+        this.subcategoryRepository = subcategoryRepository;
+    }
 
     public List<Subcategory> getAllSubcategories() {
         return subcategoryRepository.findAll();
@@ -41,5 +49,4 @@ public class SubcategoryService {
     public void deleteSubcategoryById(int id) {
         subcategoryRepository.deleteById(id);
     }
-
 }

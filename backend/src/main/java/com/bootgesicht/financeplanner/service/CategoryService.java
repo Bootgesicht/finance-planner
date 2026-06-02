@@ -2,13 +2,20 @@ package com.bootgesicht.financeplanner.service;
 
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import com.bootgesicht.financeplanner.dto.CategoryRequest;
 import com.bootgesicht.financeplanner.model.Category;
 import com.bootgesicht.financeplanner.repository.CategoryRepository;
 
+@Service
 public class CategoryService {
 
-    private CategoryRepository categoryRepository = new CategoryRepository();
+    private CategoryRepository categoryRepository;
+
+    public CategoryService(CategoryRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
+    }
 
     public List<Category> getAllCategories() {
         return categoryRepository.findAll();
@@ -38,5 +45,4 @@ public class CategoryService {
     public void deleteCategoryById(int id) {
         categoryRepository.deleteById(id);
     }
-
 }

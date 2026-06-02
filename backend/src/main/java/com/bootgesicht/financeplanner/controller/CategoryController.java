@@ -17,7 +17,11 @@ import com.bootgesicht.financeplanner.service.CategoryService;
 @RequestMapping("/categories")
 public class CategoryController {
 
-    private CategoryService categoryService = new CategoryService();
+    private CategoryService categoryService;
+
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
+    }
 
     @GetMapping
     public List<Category> getAllCategories() {

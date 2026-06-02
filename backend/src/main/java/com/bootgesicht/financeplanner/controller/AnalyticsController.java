@@ -15,7 +15,11 @@ import com.bootgesicht.financeplanner.service.AnalyticsService;
 @RequestMapping("/analytics")
 public class AnalyticsController {
 
-    private AnalyticsService analyticsService = new AnalyticsService();
+    private AnalyticsService analyticsService;
+
+    public AnalyticsController(AnalyticsService analyticsService) {
+        this.analyticsService = analyticsService;
+    }
 
     @GetMapping("/monthly-balance")
     public List<MonthlyBalanceResponse> getMonthlyBalance(@RequestParam int year) {

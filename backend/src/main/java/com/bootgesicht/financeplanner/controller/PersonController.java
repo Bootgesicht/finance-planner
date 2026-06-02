@@ -17,7 +17,11 @@ import com.bootgesicht.financeplanner.service.PersonService;
 @RequestMapping("/persons")
 public class PersonController {
 
-    private PersonService personService = new PersonService();
+    private PersonService personService;
+
+    public PersonController(PersonService personService) {
+        this.personService = personService;
+    }
 
     @GetMapping
     public List<Person> getAllPersons() {
@@ -33,5 +37,4 @@ public class PersonController {
     public void createPerson(@RequestBody PersonRequest request) {
         personService.createPerson(request);
     }
-
 }

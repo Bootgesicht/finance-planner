@@ -7,10 +7,19 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.stereotype.Repository;
+
 import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
 
+@Repository
 public class AnalyticsRepository {
+
+    private DatabaseConnection databaseConnection;
+
+    public AnalyticsRepository(DatabaseConnection databaseConnection) {
+        this.databaseConnection = databaseConnection;
+    }
 
     public List<MonthlyBalanceResponse> getMonthlyBalance(int year) {
         List<MonthlyBalanceResponse> monthlyBalances = new ArrayList<>();
@@ -56,9 +65,9 @@ public class AnalyticsRepository {
                 """;
 
         try (
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
-
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
             ps.setString(1, String.valueOf(year));
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -69,12 +78,12 @@ public class AnalyticsRepository {
                             rs.getDouble("expenses"),
                             rs.getDouble("savings"),
                             rs.getDouble("balance_before_savings"),
-                            rs.getDouble("free_balance_after_savings"));
+                            rs.getDouble("free_balance_after_savings")
+                    );
 
                     monthlyBalances.add(monthlyBalance);
                 }
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -116,9 +125,9 @@ public class AnalyticsRepository {
                 """);
 
         try (
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql.toString())
+        ) {
             for (int i = 0; i < parameters.size(); i++) {
                 ps.setObject(i + 1, parameters.get(i));
             }
@@ -129,10 +138,10 @@ public class AnalyticsRepository {
                             rs.getInt("category_id"),
                             rs.getString("category_name"),
                             rs.getString("category_kind"),
-                            rs.getDouble("total_amount")));
+                            rs.getDouble("total_amount")
+                    ));
                 }
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }

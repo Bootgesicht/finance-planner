@@ -7,28 +7,39 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.stereotype.Repository;
+
 import com.bootgesicht.financeplanner.model.Person;
 import com.bootgesicht.financeplanner.model.PersonRole;
 
+@Repository
 public class PersonRepository {
+
+    private DatabaseConnection databaseConnection;
+
+    public PersonRepository(DatabaseConnection databaseConnection) {
+        this.databaseConnection = databaseConnection;
+    }
 
     public List<Person> findAll() {
         List<Person> persons = new ArrayList<>();
-        String sql = """
-                    SELECT id, name, role
-                    FROM persons
-                """;
-        try (
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery();) {
 
+        String sql = """
+                SELECT id, name, role
+                FROM persons
+                """;
+
+        try (
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 persons.add(mapRowToPerson(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return persons;
     }
 
@@ -38,10 +49,12 @@ public class PersonRepository {
                 FROM persons
                 WHERE id = ?
                 """;
+
         try (
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapRowToPerson(rs);
@@ -50,6 +63,7 @@ public class PersonRepository {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return null;
     }
 
@@ -61,30 +75,31 @@ public class PersonRepository {
                 """;
 
         try (
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
-
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, name);
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapRowToPerson(rs);
                 }
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return null;
     }
 
     public void save(Person person) {
         String sql = """
-                INSERT INTO persons (name,role)
+                INSERT INTO persons (name, role)
                 VALUES (?, ?)
                 """;
+
         try (
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, person.getPersonName());
             ps.setString(2, person.getPersonRole().name());
             ps.executeUpdate();
@@ -100,15 +115,13 @@ public class PersonRepository {
                 """;
 
         try (
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);) {
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
             ps.executeUpdate();
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
     }
 
     private Person mapRowToPerson(ResultSet rs) throws SQLException {
@@ -117,5 +130,4 @@ public class PersonRepository {
                 rs.getString("name"),
                 PersonRole.valueOf(rs.getString("role")));
     }
-
 }

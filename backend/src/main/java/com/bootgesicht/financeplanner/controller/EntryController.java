@@ -8,21 +8,25 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-
-import com.bootgesicht.financeplanner.dto.EntryOverviewResponse;
-import com.bootgesicht.financeplanner.dto.EntryRequest;
-import com.bootgesicht.financeplanner.model.Entry;
-import com.bootgesicht.financeplanner.service.EntryService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+
+import com.bootgesicht.financeplanner.dto.EntryOverviewResponse;
+import com.bootgesicht.financeplanner.dto.EntryRequest;
 import com.bootgesicht.financeplanner.dto.LatestEntryResponse;
+import com.bootgesicht.financeplanner.model.Entry;
+import com.bootgesicht.financeplanner.service.EntryService;
 
 @RestController
 @RequestMapping("/entries")
 public class EntryController {
 
-    private EntryService entryService = new EntryService();
+    private EntryService entryService;
+
+    public EntryController(EntryService entryService) {
+        this.entryService = entryService;
+    }
 
     @GetMapping
     public List<Entry> getAllEntries() {
@@ -65,7 +69,8 @@ public class EntryController {
                 personId,
                 categoryId,
                 subcategoryId,
-                description);
+                description
+        );
     }
 
     @PostMapping
@@ -84,5 +89,4 @@ public class EntryController {
             @RequestBody EntryRequest request) {
         entryService.updateEntry(id, request);
     }
-
 }

@@ -4,11 +4,19 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+@Component
 public class DatabaseConnection {
 
-    private static String URL = "jdbc:sqlite:C:/Users/jonas/FinancePlanner/backend/finance.db";
+    private String url;
 
-    public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL);
+    public DatabaseConnection(@Value("${app.database.url}") String url) {
+        this.url = url;
+    }
+
+    public Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(url);
     }
 }
