@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
 
 public class AnalyticsRepository {
@@ -79,5 +80,63 @@ public class AnalyticsRepository {
         }
 
         return monthlyBalances;
+    }
+
+    public List<CategorySummaryResponse> getCategorySummary(int year, Integer month, String kind) {
+        List<CategorySummaryResponse> summaries = new ArrayList<>();
+
+        StringBuilder sql = new StringBuilder("""
+                SELECT
+                    c.id AS category_id,
+                    c.name AS category_name,
+                    c.kind AS category_kind,
+                    ROUND(SUM(e.amount), 2) AS total_amount
+                FROM entries e
+                JOIN subcategories s ON e.subcategory_id = s.id
+                JOIN categories c ON s.category_id = c.id
+                WHERE strftime('%Y', e.entry_date) = ?
+                """);
+
+        List<Object> parameters = new ArrayList<>();
+        parameters.add(String.valueOf(year));
+
+        if (month != null) {
+            sql.append(" AND strftime('%m', e.entry_date) = ?");
+            parameters.add(String.format("%02d", month));
+        }
+
+        if (kind != null && !kind.isBlank()) {
+            sql.append(" AND c.kind = ?");
+            parameters.add(kind);
+        }
+
+        sql.append("""
+                GROUP BY c.id, c.name, c.kind
+                ORDER BY total_amount DESC
+                """);
+
+        try (
+                Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < parameters.size(); i++) {
+                ps.setObject(i + 1, parameters.get(i));
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    summaries.add(new CategorySummaryResponse(
+                            rs.getInt("category_id"),
+                            rs.getString("category_name"),
+                            rs.getString("category_kind"),
+                            rs.getDouble("total_amount")));
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return summaries;
     }
 }

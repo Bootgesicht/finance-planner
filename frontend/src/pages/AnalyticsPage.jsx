@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getMonthlyBalance } from '../api/analyticsApi'
+import { getMonthlyBalance, getCategorySummary } from '../api/analyticsApi'
 
 function AnalyticsPage() {
     const currentYear = new Date().getFullYear()
@@ -8,9 +8,12 @@ function AnalyticsPage() {
     const [monthlyBalance, setMonthlyBalance] = useState([])
     const [errorMessage, setErrorMessage] = useState('')
     const [successMessage, setSuccessMessage] = useState('')
+    const [selectedMonth, setSelectedMonth] = useState('')
+    const [categorySummary, setCategorySummary] = useState([])
 
     useEffect(() => {
         loadMonthlyBalance(currentYear)
+        loadCategorySummary(currentYear, selectedMonth)
     }, [])
 
     function loadMonthlyBalance(year) {
@@ -31,6 +34,7 @@ function AnalyticsPage() {
     function handleSubmit(event) {
         event.preventDefault()
         loadMonthlyBalance(selectedYear)
+        loadCategorySummary(selectedYear, selectedMonth)
     }
 
     function formatAmount(amount) {
@@ -65,6 +69,17 @@ function AnalyticsPage() {
             year: 'numeric'
         })
     }
+
+    function loadCategorySummary(year, month) {
+        getCategorySummary(year, month, 'EXPENSE')
+            .then(data => setCategorySummary(data))
+            .catch(error => {
+                console.error('Error loading category summary:', error)
+                setErrorMessage('Kategorie-Auswertung konnte nicht geladen werden.')
+            })
+    }
+
+
 
     return (
         <div className="container mt-4 pb-5">
@@ -117,9 +132,30 @@ function AnalyticsPage() {
             <div className="card mt-4">
                 <div className="card-body">
                     <h5 className="card-title mb-3">Zeitraum</h5>
-
                     <form onSubmit={handleSubmit}>
                         <div className="row g-3 align-items-end">
+                            <div className="col-12 col-md-3">
+                                <label className="form-label">Monat</label>
+                                <select
+                                    className="form-select"
+                                    value={selectedMonth}
+                                    onChange={(event) => setSelectedMonth(event.target.value)}
+                                >
+                                    <option value="">Ganzes Jahr</option>
+                                    <option value="1">Januar</option>
+                                    <option value="2">Februar</option>
+                                    <option value="3">März</option>
+                                    <option value="4">April</option>
+                                    <option value="5">Mai</option>
+                                    <option value="6">Juni</option>
+                                    <option value="7">Juli</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">Oktober</option>
+                                    <option value="11">November</option>
+                                    <option value="12">Dezember</option>
+                                </select>
+                            </div>
                             <div className="col-12 col-md-3">
                                 <label className="form-label">Jahr</label>
                                 <input
@@ -129,7 +165,6 @@ function AnalyticsPage() {
                                     onChange={(event) => setSelectedYear(event.target.value)}
                                 />
                             </div>
-
                             <div className="col-12 col-md-3">
                                 <button type="submit" className="btn btn-primary w-100">
                                     Auswerten
@@ -216,7 +251,7 @@ function AnalyticsPage() {
                                 <tbody>
                                     {monthlyBalance.map(month => (
                                         <tr key={month.month}>
-                                            <td>{month.month}</td>
+                                            <td>{formatMonth(month.month)}</td>
                                             <td className="text-end text-success">
                                                 {formatAmount(month.income)} €
                                             </td>
@@ -244,9 +279,36 @@ function AnalyticsPage() {
             <section id="category-summary" className="card mt-4">
                 <div className="card-body">
                     <h5 className="card-title mb-2">Ausgaben nach Kategorien</h5>
-                    <p className="text-muted mb-0">
-                        Folgt als nächster Analytics-Baustein.
+                    <p className="text-muted">
+                        Übersicht der Ausgaben nach Hauptkategorien.
                     </p>
+
+                    {categorySummary.length === 0 ? (
+                        <p className="text-muted mb-0">Keine Ausgaben für den gewählten Zeitraum vorhanden.</p>
+                    ) : (
+                        <div className="table-responsive">
+                            <table className="table table-sm align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Kategorie</th>
+                                        <th>Art</th>
+                                        <th className="text-end">Betrag</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {categorySummary.map(category => (
+                                        <tr key={category.categoryId}>
+                                            <td>{category.categoryName}</td>
+                                            <td>{category.categoryKind}</td>
+                                            <td className="text-end text-danger">
+                                                {formatAmount(category.totalAmount)} €
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             </section>
 
