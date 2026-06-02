@@ -56,6 +56,24 @@ function AnalyticsPage() {
         return ''
     }
 
+    function getSelectedPeriodLabel() {
+        if (selectedMonth) {
+            const date = new Date(Number(selectedYear), Number(selectedMonth) - 1)
+
+            return date.toLocaleDateString('de-DE', {
+                month: 'long',
+                year: 'numeric'
+            })
+        }
+
+        return `Januar ${selectedYear} – Dezember ${selectedYear}`
+    }
+
+    const categorySummaryTotal = categorySummary.reduce(
+        (sum, category) => sum + category.totalAmount,
+        0
+    )
+
     const latestMonthBalance = monthlyBalance.length > 0
         ? monthlyBalance[monthlyBalance.length - 1]
         : null
@@ -279,8 +297,11 @@ function AnalyticsPage() {
             <section id="category-summary" className="card mt-4">
                 <div className="card-body">
                     <h5 className="card-title mb-2">Ausgaben nach Kategorien</h5>
-                    <p className="text-muted">
+                    <p className="text-muted mb-1">
                         Übersicht der Ausgaben nach Hauptkategorien.
+                    </p>
+                    <p className="text-muted">
+                        Zeitraum: {getSelectedPeriodLabel()}
                     </p>
 
                     {categorySummary.length === 0 ? (
@@ -306,6 +327,15 @@ function AnalyticsPage() {
                                         </tr>
                                     ))}
                                 </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th>Gesamt</th>
+                                        <th></th>
+                                        <th className="text-end text-danger">
+                                            {formatAmount(categorySummaryTotal)} €
+                                        </th>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     )}
