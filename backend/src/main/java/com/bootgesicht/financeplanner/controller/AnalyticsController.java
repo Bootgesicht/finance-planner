@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
+import com.bootgesicht.financeplanner.dto.SubcategorySummaryResponse;
 import com.bootgesicht.financeplanner.service.AnalyticsService;
 
 @RestController
@@ -33,5 +34,15 @@ public class AnalyticsController {
             @RequestParam(required = false) String kind) {
 
         return analyticsService.getCategorySummary(year, month, kind);
+    }
+
+    @GetMapping("/subcategory-summary")
+    public List<SubcategorySummaryResponse> getSubcategorySummary(
+            @RequestParam int year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) String kind) {
+
+        return analyticsService.getSubcategorySummary(year, month, categoryId, kind);
     }
 }

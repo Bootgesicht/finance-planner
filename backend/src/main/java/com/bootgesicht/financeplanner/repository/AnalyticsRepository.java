@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
+import com.bootgesicht.financeplanner.dto.SubcategorySummaryResponse;
 
 @Repository
 public class AnalyticsRepository {
@@ -66,8 +67,7 @@ public class AnalyticsRepository {
 
         try (
                 Connection conn = databaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, String.valueOf(year));
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -78,8 +78,7 @@ public class AnalyticsRepository {
                             rs.getDouble("expenses"),
                             rs.getDouble("savings"),
                             rs.getDouble("balance_before_savings"),
-                            rs.getDouble("free_balance_after_savings")
-                    );
+                            rs.getDouble("free_balance_after_savings"));
 
                     monthlyBalances.add(monthlyBalance);
                 }
@@ -126,8 +125,7 @@ public class AnalyticsRepository {
 
         try (
                 Connection conn = databaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql.toString())
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             for (int i = 0; i < parameters.size(); i++) {
                 ps.setObject(i + 1, parameters.get(i));
             }
@@ -138,10 +136,81 @@ public class AnalyticsRepository {
                             rs.getInt("category_id"),
                             rs.getString("category_name"),
                             rs.getString("category_kind"),
-                            rs.getDouble("total_amount")
-                    ));
+                            rs.getDouble("total_amount")));
                 }
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return summaries;
+    }
+
+    public List<SubcategorySummaryResponse> getSubcategorySummary(
+            int year,
+            Integer month,
+            Integer categoryId,
+            String kind) {
+
+        List<SubcategorySummaryResponse> summaries = new ArrayList<>();
+
+        StringBuilder sql = new StringBuilder("""
+                SELECT
+                    s.id AS subcategory_id,
+                    s.name AS subcategory_name,
+                    c.id AS category_id,
+                    c.name AS category_name,
+                    c.kind AS category_kind,
+                    ROUND(SUM(e.amount), 2) AS total_amount
+                FROM entries e
+                JOIN subcategories s ON e.subcategory_id = s.id
+                JOIN categories c ON s.category_id = c.id
+                WHERE strftime('%Y', e.entry_date) = ?
+                """);
+
+        List<Object> parameters = new ArrayList<>();
+        parameters.add(String.valueOf(year));
+
+        if (month != null) {
+            sql.append(" AND strftime('%m', e.entry_date) = ?");
+            parameters.add(String.format("%02d", month));
+        }
+
+        if (categoryId != null) {
+            sql.append(" AND c.id = ?");
+            parameters.add(categoryId);
+        }
+
+        if (kind != null && !kind.isBlank()) {
+            sql.append(" AND c.kind = ?");
+            parameters.add(kind);
+        }
+
+        sql.append("""
+                GROUP BY s.id, s.name, c.id, c.name, c.kind
+                ORDER BY total_amount DESC
+                """);
+
+        try (
+                Connection conn = databaseConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < parameters.size(); i++) {
+                ps.setObject(i + 1, parameters.get(i));
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    summaries.add(new SubcategorySummaryResponse(
+                            rs.getInt("subcategory_id"),
+                            rs.getString("subcategory_name"),
+                            rs.getInt("category_id"),
+                            rs.getString("category_name"),
+                            rs.getString("category_kind"),
+                            rs.getDouble("total_amount")));
+                }
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }

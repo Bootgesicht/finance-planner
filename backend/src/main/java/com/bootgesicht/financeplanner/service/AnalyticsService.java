@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
+import com.bootgesicht.financeplanner.dto.SubcategorySummaryResponse;
 import com.bootgesicht.financeplanner.repository.AnalyticsRepository;
 
 @Service
@@ -23,5 +24,14 @@ public class AnalyticsService {
 
     public List<CategorySummaryResponse> getCategorySummary(int year, Integer month, String kind) {
         return analyticsRepository.getCategorySummary(year, month, kind);
+    }
+
+    public List<SubcategorySummaryResponse> getSubcategorySummary(
+            int year,
+            Integer month,
+            Integer categoryId,
+            String kind) {
+
+        return analyticsRepository.getSubcategorySummary(year, month, categoryId, kind);
     }
 }
