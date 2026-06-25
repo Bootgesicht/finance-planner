@@ -1,18 +1,28 @@
-## Getting Started
+## Finance Planner Backend
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+Dieses Backend stellt die REST-API fuer den Finance Planner bereit. Es basiert
+auf Spring Boot, Java 17, Maven und SQLite.
 
-## Folder Structure
+## Lokal starten
 
-The workspace contains two folders by default, where:
+Das Backend sollte aus dem Projekt-Root gestartet werden, damit der relative
+SQLite-Pfad korrekt auf die Datenbank zeigt:
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+```powershell
+.\backend\mvnw.cmd -f backend\pom.xml spring-boot:run
+```
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+Die API ist danach standardmaessig unter `http://localhost:8080` erreichbar.
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
+## Hinweis zur SQLite-Datenbank
 
-## Dependency Management
+In `src/main/resources/application.properties` ist die Datenbank als relativer
+Pfad konfiguriert:
 
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+```properties
+app.database.url=jdbc:sqlite:database/finance.db
+```
+
+Wenn das Backend direkt aus dem Ordner `backend` gestartet wird, kann dieser
+relative Pfad auf `backend/database/finance.db` zeigen. Die eigentliche
+Datenbank liegt aber im Projekt-Root unter `database/finance.db`.
