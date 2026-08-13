@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getSubcategoriesByCategoryId } from '../api/subcategoryApi'
 
-function EntryRow({ row, index, categories, onChange, onRemove }) {
+function EntryRow({ row, index, categories, persons, onChange, onRemove }) {
     const [subcategories, setSubcategories] = useState([])
 
     const selectedCategory = categories.find(
@@ -52,7 +52,7 @@ function EntryRow({ row, index, categories, onChange, onRemove }) {
                 />
             </div>
 
-            <div className="col-12 col-md-3">
+            <div className="col-12 col-md-2">
                 <label className="form-label">Beschreibung</label>
                 <input
                     type="text"
@@ -95,6 +95,23 @@ function EntryRow({ row, index, categories, onChange, onRemove }) {
                     {subcategories.map(subcategory => (
                         <option key={subcategory.id} value={subcategory.id}>
                             {subcategory.name}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="col-12 col-md-1">
+                <label className="form-label">Person</label>
+                <select
+                    className="form-select"
+                    value={row.personId}
+                    onChange={(event) => onChange(index, 'personId', event.target.value)}
+                >
+                    <option value="">Person</option>
+
+                    {persons.map(person => (
+                        <option key={person.personId} value={person.personId}>
+                            {person.personName}
                         </option>
                     ))}
                 </select>
