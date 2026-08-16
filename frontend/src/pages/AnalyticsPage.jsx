@@ -1,148 +1,205 @@
-import { useEffect, useState } from 'react'
-import { getMonthlyBalance, getCategorySummary } from '../api/analyticsApi'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+    getAnalyticsOverview,
+    getCategorySummary,
+    getMonthlyBalance,
+    getPersonSummary,
+    getSavingsSummary,
+    getSubcategorySummary
+} from '../api/analyticsApi'
+import AnalyticsDoughnutChart from '../components/AnalyticsDoughnutChart'
+import { getAnalyticsChartColor } from '../components/analyticsChartColors'
+
+const EMPTY_OVERVIEW = {
+    income: 0,
+    expenses: 0,
+    savings: 0,
+    balanceBeforeSavings: 0,
+    freeBalanceAfterSavings: 0
+}
+
+const EMPTY_SAVINGS = {
+    items: [],
+    bookedSavings: 0,
+    freeSurplus: 0,
+    totalAmount: 0
+}
+
+function getCurrentYearRange() {
+    const year = new Date().getFullYear()
+    return { from: `${year}-01-01`, to: `${year}-12-31` }
+}
+
+function parseLocalDate(dateString) {
+    const [year, month, day] = dateString.split('-').map(Number)
+    return new Date(year, month - 1, day)
+}
+
+function formatAmount(amount) {
+    return Number(amount || 0).toLocaleString('de-DE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    })
+}
+
+function formatMonth(monthString) {
+    const [year, month] = monthString.split('-').map(Number)
+    return new Date(year, month - 1, 1).toLocaleDateString('de-DE', {
+        month: 'long',
+        year: 'numeric'
+    })
+}
+
+function formatPeriodLabel(from, to) {
+    const fromDate = parseLocalDate(from)
+    const toDate = parseLocalDate(to)
+    const lastDayOfToMonth = new Date(toDate.getFullYear(), toDate.getMonth() + 1, 0).getDate()
+
+    if (fromDate.getDate() === 1 && toDate.getDate() === lastDayOfToMonth) {
+        const options = { month: 'long', year: 'numeric' }
+        return `${fromDate.toLocaleDateString('de-DE', options)} – ${toDate.toLocaleDateString('de-DE', options)}`
+    }
+
+    const options = { day: 'numeric', month: 'long', year: 'numeric' }
+    return `${fromDate.toLocaleDateString('de-DE', options)} – ${toDate.toLocaleDateString('de-DE', options)}`
+}
+
+function getBalanceClass(value) {
+    if (value > 0) return 'text-success fw-semibold'
+    if (value < 0) return 'text-danger fw-semibold'
+    return ''
+}
+
+function BalanceCard({ label, value, color, balance }) {
+    const effectiveColor = balance ? (value < 0 ? 'danger' : 'success') : color
+
+    return (
+        <div className="col">
+            <div className={`card h-100 border-${effectiveColor}`}>
+                <div className="card-body">
+                    <p className="text-muted mb-1">{label}</p>
+                    <h4 className={`${balance ? getBalanceClass(value) : `text-${color}`} mb-0`}>
+                        {formatAmount(value)} €
+                    </h4>
+                </div>
+            </div>
+        </div>
+    )
+}
 
 function AnalyticsPage() {
-    const currentYear = new Date().getFullYear()
-
-    const [selectedYear, setSelectedYear] = useState(currentYear)
+    const [initialRange] = useState(getCurrentYearRange)
+    const [fromDate, setFromDate] = useState(initialRange.from)
+    const [toDate, setToDate] = useState(initialRange.to)
+    const [appliedRange, setAppliedRange] = useState(initialRange)
+    const [overview, setOverview] = useState(EMPTY_OVERVIEW)
     const [monthlyBalance, setMonthlyBalance] = useState([])
+    const [categorySummary, setCategorySummary] = useState([])
+    const [subcategorySummary, setSubcategorySummary] = useState([])
+    const [personSummary, setPersonSummary] = useState([])
+    const [savingsSummary, setSavingsSummary] = useState(EMPTY_SAVINGS)
     const [errorMessage, setErrorMessage] = useState('')
     const [successMessage, setSuccessMessage] = useState('')
-    const [selectedMonth, setSelectedMonth] = useState('')
-    const [categorySummary, setCategorySummary] = useState([])
+    const [loading, setLoading] = useState(false)
 
-    useEffect(() => {
-        loadMonthlyBalance(currentYear)
-        loadCategorySummary(currentYear, selectedMonth)
-    }, [])
-
-    function loadMonthlyBalance(year) {
+    const loadAnalytics = useCallback(async (from, to) => {
+        setLoading(true)
         setErrorMessage('')
         setSuccessMessage('')
 
-        getMonthlyBalance(year)
-            .then(data => {
-                setMonthlyBalance(data)
-                setSuccessMessage(`${data.length} Monate für ${year} geladen.`)
-            })
-            .catch(error => {
-                console.error('Error loading monthly balance:', error)
-                setErrorMessage('Monatsübersicht konnte nicht geladen werden.')
-            })
-    }
+        try {
+            const [overviewData, monthlyData, categoryData, subcategoryData, personData, savingsData] =
+                await Promise.all([
+                    getAnalyticsOverview(from, to),
+                    getMonthlyBalance(from, to),
+                    getCategorySummary(from, to, 'EXPENSE'),
+                    getSubcategorySummary(from, to, 'EXPENSE'),
+                    getPersonSummary(from, to),
+                    getSavingsSummary(from, to)
+                ])
+
+            setOverview({ ...EMPTY_OVERVIEW, ...overviewData })
+            setMonthlyBalance(Array.isArray(monthlyData) ? monthlyData : [])
+            setCategorySummary(Array.isArray(categoryData) ? categoryData : [])
+            setSubcategorySummary(Array.isArray(subcategoryData) ? subcategoryData : [])
+            setPersonSummary(Array.isArray(personData) ? personData : [])
+            setSavingsSummary({ ...EMPTY_SAVINGS, ...savingsData })
+            setAppliedRange({ from, to })
+            setSuccessMessage(`Auswertung für ${formatPeriodLabel(from, to)} geladen.`)
+        } catch (error) {
+            console.error('Error loading analytics:', error)
+            setErrorMessage('Die Auswertung konnte nicht geladen werden.')
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    useEffect(() => {
+        // Initial data loading is the effect's external synchronization task.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        loadAnalytics(initialRange.from, initialRange.to)
+    }, [initialRange, loadAnalytics])
+
+    const categoryItems = useMemo(() => categorySummary.map(category => ({
+        id: `category-${category.categoryId}`,
+        label: category.categoryName,
+        amount: category.totalAmount
+    })), [categorySummary])
+
+    const subcategoryItems = useMemo(() => subcategorySummary.map(subcategory => ({
+        id: `subcategory-${subcategory.subcategoryId}`,
+        label: `${subcategory.categoryName} – ${subcategory.subcategoryName}`,
+        amount: subcategory.totalAmount
+    })), [subcategorySummary])
+
+    const personItems = useMemo(() => personSummary.map(person => ({
+        id: `person-${person.personId}`,
+        label: person.personName,
+        amount: person.totalAmount
+    })), [personSummary])
+
+    const savingsItems = useMemo(() => (Array.isArray(savingsSummary.items) ? savingsSummary.items : [])
+        .map(item => ({ id: item.id, label: item.name, amount: item.totalAmount })), [savingsSummary.items])
 
     function handleSubmit(event) {
         event.preventDefault()
-        loadMonthlyBalance(selectedYear)
-        loadCategorySummary(selectedYear, selectedMonth)
-    }
-
-    function formatAmount(amount) {
-        return amount.toLocaleString('de-DE', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        })
-    }
-
-    function getBalanceClass(value) {
-        if (value > 0) {
-            return 'text-success fw-semibold'
+        if (!fromDate || !toDate || fromDate > toDate) {
+            setErrorMessage('Das Von-Datum darf nicht nach dem Bis-Datum liegen.')
+            return
         }
-
-        if (value < 0) {
-            return 'text-danger fw-semibold'
-        }
-
-        return ''
+        loadAnalytics(fromDate, toDate)
     }
 
-    function getSelectedPeriodLabel() {
-        if (selectedMonth) {
-            const date = new Date(Number(selectedYear), Number(selectedMonth) - 1)
-
-            return date.toLocaleDateString('de-DE', {
-                month: 'long',
-                year: 'numeric'
-            })
-        }
-
-        return `Januar ${selectedYear} – Dezember ${selectedYear}`
+    function selectCurrentYear() {
+        const range = getCurrentYearRange()
+        setFromDate(range.from)
+        setToDate(range.to)
     }
 
-    const categorySummaryTotal = categorySummary.reduce(
-        (sum, category) => sum + category.totalAmount,
-        0
-    )
-
-    const latestMonthBalance = monthlyBalance.length > 0
-        ? monthlyBalance[monthlyBalance.length - 1]
-        : null
-
-    function formatMonth(monthString) {
-        const [year, month] = monthString.split('-')
-        const date = new Date(Number(year), Number(month) - 1)
-
-        return date.toLocaleDateString('de-DE', {
-            month: 'long',
-            year: 'numeric'
-        })
-    }
-
-    function loadCategorySummary(year, month) {
-        getCategorySummary(year, month, 'EXPENSE')
-            .then(data => setCategorySummary(data))
-            .catch(error => {
-                console.error('Error loading category summary:', error)
-                setErrorMessage('Kategorie-Auswertung konnte nicht geladen werden.')
-            })
-    }
-
-
+    const periodLabel = formatPeriodLabel(appliedRange.from, appliedRange.to)
 
     return (
         <div className="container mt-4 pb-5">
             <div className="mb-4">
                 <h1>Analytics</h1>
                 <p className="text-muted mb-0">
-                    Monatsübersicht für Einkommen, Ausgaben, Sparen und freien Saldo.
+                    Auswertung von Einkommen, Ausgaben, Sparen und Salden für einen frei wählbaren Zeitraum.
                 </p>
             </div>
 
-            {errorMessage && (
-                <div className="alert alert-danger mt-3" role="alert">
-                    {errorMessage}
-                </div>
-            )}
-
-            {successMessage && (
-                <div className="alert alert-success mt-3" role="alert">
-                    {successMessage}
-                </div>
-            )}
+            {errorMessage && <div className="alert alert-danger mt-3" role="alert">{errorMessage}</div>}
+            {successMessage && <div className="alert alert-success mt-3" role="status">{successMessage}</div>}
 
             <div className="card mb-4">
                 <div className="card-body">
                     <h5 className="card-title mb-3">Analytics-Bereiche</h5>
-
                     <nav className="nav nav-pills flex-wrap gap-2">
-                        <a className="nav-link active" href="#monthly-balance">
-                            Monats-Saldo
-                        </a>
-                        <a className="nav-link" href="#category-summary">
-                            Kategorien
-                        </a>
-                        <a className="nav-link" href="#subcategory-summary">
-                            Subkategorien
-                        </a>
-                        <a className="nav-link" href="#person-summary">
-                            Personen
-                        </a>
-                        <a className="nav-link" href="#savings-summary">
-                            Sparen
-                        </a>
-                        <a className="nav-link" href="#year-comparison">
-                            Jahresvergleich
-                        </a>
+                        <a className="nav-link active" href="#monthly-balance">Monats-Saldo</a>
+                        <a className="nav-link" href="#category-summary">Kategorien</a>
+                        <a className="nav-link" href="#subcategory-summary">Subkategorien</a>
+                        <a className="nav-link" href="#person-summary">Personen</a>
+                        <a className="nav-link" href="#savings-summary">Sparen</a>
+                        <a className="nav-link" href="#year-comparison">Jahresvergleich</a>
                     </nav>
                 </div>
             </div>
@@ -153,39 +210,23 @@ function AnalyticsPage() {
                     <form onSubmit={handleSubmit}>
                         <div className="row g-3 align-items-end">
                             <div className="col-12 col-md-3">
-                                <label className="form-label">Monat</label>
-                                <select
-                                    className="form-select"
-                                    value={selectedMonth}
-                                    onChange={(event) => setSelectedMonth(event.target.value)}
-                                >
-                                    <option value="">Ganzes Jahr</option>
-                                    <option value="1">Januar</option>
-                                    <option value="2">Februar</option>
-                                    <option value="3">März</option>
-                                    <option value="4">April</option>
-                                    <option value="5">Mai</option>
-                                    <option value="6">Juni</option>
-                                    <option value="7">Juli</option>
-                                    <option value="8">August</option>
-                                    <option value="9">September</option>
-                                    <option value="10">Oktober</option>
-                                    <option value="11">November</option>
-                                    <option value="12">Dezember</option>
-                                </select>
+                                <label className="form-label" htmlFor="analytics-from">Von-Datum</label>
+                                <input id="analytics-from" type="date" className="form-control" value={fromDate}
+                                    onChange={event => setFromDate(event.target.value)} required />
                             </div>
                             <div className="col-12 col-md-3">
-                                <label className="form-label">Jahr</label>
-                                <input
-                                    type="number"
-                                    className="form-control"
-                                    value={selectedYear}
-                                    onChange={(event) => setSelectedYear(event.target.value)}
-                                />
+                                <label className="form-label" htmlFor="analytics-to">Bis-Datum</label>
+                                <input id="analytics-to" type="date" className="form-control" value={toDate}
+                                    onChange={event => setToDate(event.target.value)} required />
                             </div>
                             <div className="col-12 col-md-3">
-                                <button type="submit" className="btn btn-primary w-100">
-                                    Auswerten
+                                <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+                                    {loading ? 'Wird ausgewertet …' : 'Auswerten'}
+                                </button>
+                            </div>
+                            <div className="col-12 col-md-3">
+                                <button type="button" className="btn btn-outline-secondary w-100" onClick={selectCurrentYear}>
+                                    Aktuelles Jahr
                                 </button>
                             </div>
                         </div>
@@ -193,101 +234,44 @@ function AnalyticsPage() {
                 </div>
             </div>
 
-            {latestMonthBalance && (
-                <div className="row g-3 mt-4">
-                    <div className="col-12">
-                        <h5 className="mb-0">
-                            Übersicht {formatMonth(latestMonthBalance.month)}
-                        </h5>
-                    </div>
-
-                    <div className="col-12 col-md-3">
-                        <div className="card h-100 border-success">
-                            <div className="card-body">
-                                <p className="text-muted mb-1">Einkommen</p>
-                                <h4 className="text-success mb-0">
-                                    {formatAmount(latestMonthBalance.income)} €
-                                </h4>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="col-12 col-md-3">
-                        <div className="card h-100 border-danger">
-                            <div className="card-body">
-                                <p className="text-muted mb-1">Ausgaben</p>
-                                <h4 className="text-danger mb-0">
-                                    {formatAmount(latestMonthBalance.expenses)} €
-                                </h4>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="col-12 col-md-3">
-                        <div className="card h-100 border-info">
-                            <div className="card-body">
-                                <p className="text-muted mb-1">Sparen</p>
-                                <h4 className="text-info mb-0">
-                                    {formatAmount(latestMonthBalance.savings)} €
-                                </h4>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="col-12 col-md-3">
-                        <div className={`card h-100 ${latestMonthBalance.freeBalanceAfterSavings >= 0 ? 'border-success' : 'border-danger'}`}>
-                            <div className="card-body">
-                                <p className="text-muted mb-1">Freier Saldo</p>
-                                <h4 className={`${getBalanceClass(latestMonthBalance.freeBalanceAfterSavings)} mb-0`}>
-                                    {formatAmount(latestMonthBalance.freeBalanceAfterSavings)} €
-                                </h4>
-                            </div>
-                        </div>
-                    </div>
+            <section aria-labelledby="overview-heading" className="mt-4">
+                <h5 id="overview-heading" className="mb-3">Übersicht {periodLabel}</h5>
+                <div className="row row-cols-1 row-cols-md-2 row-cols-xl-5 g-3">
+                    <BalanceCard label="Einkommen" value={overview.income} color="success" />
+                    <BalanceCard label="Ausgaben" value={overview.expenses} color="danger" />
+                    <BalanceCard label="Sparen" value={overview.savings} color="info" />
+                    <BalanceCard label="Saldo vor Sparen" value={overview.balanceBeforeSavings} balance />
+                    <BalanceCard label="Freier Saldo" value={overview.freeBalanceAfterSavings} balance />
                 </div>
-            )}
+            </section>
 
             <section id="monthly-balance" className="card mt-4">
                 <div className="card-body">
                     <h5 className="card-title mb-3">Monats-Saldo</h5>
-
                     {monthlyBalance.length === 0 ? (
-                        <p className="text-muted">Keine Daten für dieses Jahr vorhanden.</p>
+                        <p className="text-muted mb-0">Für den ausgewählten Zeitraum sind keine Monatsdaten vorhanden.</p>
                     ) : (
                         <div className="table-responsive">
                             <table className="table table-sm align-middle">
-                                <thead>
-                                    <tr>
-                                        <th>Monat</th>
-                                        <th className="text-end">Einkommen</th>
-                                        <th className="text-end">Ausgaben</th>
-                                        <th className="text-end">Sparen</th>
-                                        <th className="text-end">Saldo vor Sparen</th>
-                                        <th className="text-end">Freier Saldo</th>
+                                <thead><tr>
+                                    <th>Monat</th><th className="text-end">Einkommen</th>
+                                    <th className="text-end">Ausgaben</th><th className="text-end">Sparen</th>
+                                    <th className="text-end">Saldo vor Sparen</th><th className="text-end">Freier Saldo</th>
+                                </tr></thead>
+                                <tbody>{monthlyBalance.map(month => (
+                                    <tr key={month.month}>
+                                        <td>{formatMonth(month.month)}</td>
+                                        <td className="text-end text-success">{formatAmount(month.income)} €</td>
+                                        <td className="text-end text-danger">{formatAmount(month.expenses)} €</td>
+                                        <td className="text-end text-info">{formatAmount(month.savings)} €</td>
+                                        <td className={`text-end ${getBalanceClass(month.balanceBeforeSavings)}`}>
+                                            {formatAmount(month.balanceBeforeSavings)} €
+                                        </td>
+                                        <td className={`text-end ${getBalanceClass(month.freeBalanceAfterSavings)}`}>
+                                            {formatAmount(month.freeBalanceAfterSavings)} €
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {monthlyBalance.map(month => (
-                                        <tr key={month.month}>
-                                            <td>{formatMonth(month.month)}</td>
-                                            <td className="text-end text-success">
-                                                {formatAmount(month.income)} €
-                                            </td>
-                                            <td className="text-end text-danger">
-                                                {formatAmount(month.expenses)} €
-                                            </td>
-                                            <td className="text-end text-info">
-                                                {formatAmount(month.savings)} €
-                                            </td>
-                                            <td className={`text-end ${getBalanceClass(month.balanceBeforeSavings)}`}>
-                                                {formatAmount(month.balanceBeforeSavings)} €
-                                            </td>
-                                            <td className={`text-end ${getBalanceClass(month.freeBalanceAfterSavings)}`}>
-                                                {formatAmount(month.freeBalanceAfterSavings)} €
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
+                                ))}</tbody>
                             </table>
                         </div>
                     )}
@@ -297,47 +281,37 @@ function AnalyticsPage() {
             <section id="category-summary" className="card mt-4">
                 <div className="card-body">
                     <h5 className="card-title mb-2">Ausgaben nach Kategorien</h5>
-                    <p className="text-muted mb-1">
-                        Übersicht der Ausgaben nach Hauptkategorien.
-                    </p>
-                    <p className="text-muted">
-                        Zeitraum: {getSelectedPeriodLabel()}
-                    </p>
-
-                    {categorySummary.length === 0 ? (
-                        <p className="text-muted mb-0">Keine Ausgaben für den gewählten Zeitraum vorhanden.</p>
+                    <p className="text-muted mb-4">Zeitraum: {periodLabel}</p>
+                    {categoryItems.length === 0 ? (
+                        <p className="text-muted mb-0">Für den ausgewählten Zeitraum sind keine Ausgaben vorhanden.</p>
                     ) : (
-                        <div className="table-responsive">
-                            <table className="table table-sm align-middle">
-                                <thead>
-                                    <tr>
-                                        <th>Kategorie</th>
-                                        <th>Art</th>
-                                        <th className="text-end">Betrag</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {categorySummary.map(category => (
-                                        <tr key={category.categoryId}>
-                                            <td>{category.categoryName}</td>
-                                            <td>{category.categoryKind}</td>
-                                            <td className="text-end text-danger">
-                                                {formatAmount(category.totalAmount)} €
-                                            </td>
-                                        </tr>
+                        <>
+                            <AnalyticsDoughnutChart items={categoryItems}
+                                ariaLabel="Ausgaben nach Kategorien als Doughnut-Diagramm" />
+                            <div className="border-top mt-4 pt-4">
+                                <h6 className="mb-3">Monatlicher Durchschnitt nach Kategorie</h6>
+                                <div className="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+                                    {categorySummary.map((category, index) => (
+                                        <div className="col" key={category.categoryId}>
+                                            <div className="card h-100" style={{ borderColor: getAnalyticsChartColor(index) }}>
+                                                <div className="card-body py-3">
+                                                    <div className="d-flex align-items-center gap-2 mb-1">
+                                                        <span className="rounded-circle" aria-hidden="true" style={{
+                                                            backgroundColor: getAnalyticsChartColor(index),
+                                                            height: '0.75rem', width: '0.75rem'
+                                                        }} />
+                                                        <span className="fw-semibold">{category.categoryName}</span>
+                                                    </div>
+                                                    <span className="text-muted">
+                                                        Ø {formatAmount(category.averagePerMonth)} € / Monat
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     ))}
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <th>Gesamt</th>
-                                        <th></th>
-                                        <th className="text-end text-danger">
-                                            {formatAmount(categorySummaryTotal)} €
-                                        </th>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
+                                </div>
+                            </div>
+                        </>
                     )}
                 </div>
             </section>
@@ -345,36 +319,52 @@ function AnalyticsPage() {
             <section id="subcategory-summary" className="card mt-4">
                 <div className="card-body">
                     <h5 className="card-title mb-2">Ausgaben nach Subkategorien</h5>
-                    <p className="text-muted mb-0">
-                        Detailauswertung innerhalb einzelner Kategorien.
-                    </p>
+                    <p className="text-muted mb-4">Zeitraum: {periodLabel}</p>
+                    {subcategoryItems.length === 0 ? (
+                        <p className="text-muted mb-0">
+                            Für den ausgewählten Zeitraum sind keine Ausgaben nach Subkategorien vorhanden.
+                        </p>
+                    ) : (
+                        <AnalyticsDoughnutChart items={subcategoryItems}
+                            ariaLabel="Ausgaben nach Subkategorien als Doughnut-Diagramm" />
+                    )}
                 </div>
             </section>
 
             <section id="person-summary" className="card mt-4">
                 <div className="card-body">
                     <h5 className="card-title mb-2">Ausgaben nach Personen</h5>
-                    <p className="text-muted mb-0">
-                        Zeigt später die fachliche Zuordnung der Ausgaben.
-                    </p>
+                    <p className="text-muted mb-4">Zeitraum: {periodLabel}</p>
+                    {personItems.length === 0 ? (
+                        <p className="text-muted mb-0">
+                            Für den ausgewählten Zeitraum sind keine personenbezogenen Ausgaben vorhanden.
+                        </p>
+                    ) : (
+                        <AnalyticsDoughnutChart items={personItems}
+                            ariaLabel="Ausgaben nach Personen als Doughnut-Diagramm" />
+                    )}
                 </div>
             </section>
 
             <section id="savings-summary" className="card mt-4">
                 <div className="card-body">
-                    <h5 className="card-title mb-2">Sparen & Investieren</h5>
-                    <p className="text-muted mb-0">
-                        Übersicht über Sparraten und Investments.
-                    </p>
+                    <h5 className="card-title mb-2">Sparen &amp; Investieren</h5>
+                    <p className="text-muted mb-4">Zeitraum: {periodLabel}</p>
+                    {savingsItems.length === 0 ? (
+                        <p className="text-muted mb-0">
+                            Für den ausgewählten Zeitraum sind keine Sparbeträge vorhanden.
+                        </p>
+                    ) : (
+                        <AnalyticsDoughnutChart items={savingsItems}
+                            ariaLabel="Sparen und Investieren als Doughnut-Diagramm" />
+                    )}
                 </div>
             </section>
 
             <section id="year-comparison" className="card mt-4">
                 <div className="card-body">
                     <h5 className="card-title mb-2">Jahresvergleich</h5>
-                    <p className="text-muted mb-0">
-                        Vergleich von Monaten über mehrere Jahre.
-                    </p>
+                    <p className="text-muted mb-0">Vergleich von Monaten über mehrere Jahre.</p>
                 </div>
             </section>
         </div>
