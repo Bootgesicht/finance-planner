@@ -1,33 +1,48 @@
 const API_BASE_URL = 'http://localhost:8080'
 
-export async function getMonthlyBalance(year) {
-    const response = await fetch(`${API_BASE_URL}/analytics/monthly-balance?year=${year}`)
+function createRangeParams(from, to) {
+    const params = new URLSearchParams()
+    params.append('from', from)
+    params.append('to', to)
+    return params
+}
+
+async function getAnalyticsResponse(path, params) {
+    const response = await fetch(`${API_BASE_URL}/analytics/${path}?${params.toString()}`)
 
     if (!response.ok) {
-        throw new Error('Failed to fetch monthly balance')
+        throw new Error(`Failed to fetch analytics endpoint: ${path}`)
     }
 
     return response.json()
 }
 
-export async function getCategorySummary(year, month, kind = 'EXPENSE') {
-    const params = new URLSearchParams()
+export function getAnalyticsOverview(from, to) {
+    return getAnalyticsResponse('overview', createRangeParams(from, to))
+}
 
-    params.append('year', year)
+export function getMonthlyBalance(from, to) {
+    return getAnalyticsResponse('monthly-balance', createRangeParams(from, to))
+}
 
-    if (month) {
-        params.append('month', month)
-    }
+export function getCategorySummary(from, to, kind = 'EXPENSE') {
+    const params = createRangeParams(from, to)
 
-    if (kind) {
-        params.append('kind', kind)
-    }
+    if (kind) params.append('kind', kind)
+    return getAnalyticsResponse('category-summary', params)
+}
 
-    const response = await fetch(`${API_BASE_URL}/analytics/category-summary?${params.toString()}`)
+export function getSubcategorySummary(from, to, kind = 'EXPENSE') {
+    const params = createRangeParams(from, to)
 
-    if (!response.ok) {
-        throw new Error('Failed to fetch category summary')
-    }
+    if (kind) params.append('kind', kind)
+    return getAnalyticsResponse('subcategory-summary', params)
+}
 
-    return response.json()
+export function getPersonSummary(from, to) {
+    return getAnalyticsResponse('person-summary', createRangeParams(from, to))
+}
+
+export function getSavingsSummary(from, to) {
+    return getAnalyticsResponse('savings-summary', createRangeParams(from, to))
 }

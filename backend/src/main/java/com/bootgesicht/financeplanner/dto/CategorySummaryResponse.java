@@ -6,12 +6,21 @@ public class CategorySummaryResponse {
     private String categoryName;
     private String categoryKind;
     private double totalAmount;
+    private double averagePerMonth;
+    private long monthCount;
 
     public CategorySummaryResponse(int categoryId, String categoryName, String categoryKind, double totalAmount) {
+        this(categoryId, categoryName, categoryKind, totalAmount, 0, 0);
+    }
+
+    public CategorySummaryResponse(int categoryId, String categoryName, String categoryKind, double totalAmount,
+            double averagePerMonth, long monthCount) {
         this.categoryId = categoryId;
         this.categoryName = categoryName;
         this.categoryKind = categoryKind;
         this.totalAmount = totalAmount;
+        this.averagePerMonth = averagePerMonth;
+        this.monthCount = monthCount;
     }
 
     public int getCategoryId() {
@@ -28,5 +37,13 @@ public class CategorySummaryResponse {
 
     public double getTotalAmount() {
         return totalAmount;
+    }
+
+    public double getAveragePerMonth() {
+        return averagePerMonth;
+    }
+
+    public long getMonthCount() {
+        return monthCount;
     }
 }
