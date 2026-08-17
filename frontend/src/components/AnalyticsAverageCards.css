@@ -1,0 +1,28 @@
+.analytics-average-items {
+    max-width: 100%;
+}
+
+.analytics-average-items--scrollable {
+    max-height: 19.25rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    scrollbar-gutter: stable;
+}
+
+.analytics-average-card {
+    height: 5.75rem;
+}
+
+.analytics-average-color {
+    height: 0.75rem;
+    width: 0.75rem;
+}
+
+.analytics-average-name {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

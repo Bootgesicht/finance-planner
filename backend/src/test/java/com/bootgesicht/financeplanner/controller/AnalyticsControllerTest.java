@@ -18,6 +18,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.bootgesicht.financeplanner.dto.PersonSummaryResponse;
+import com.bootgesicht.financeplanner.dto.IncomeSegmentResponse;
+import com.bootgesicht.financeplanner.dto.IncomeSummaryResponse;
 import com.bootgesicht.financeplanner.dto.SavingsSegmentResponse;
 import com.bootgesicht.financeplanner.dto.SavingsSummaryResponse;
 import com.bootgesicht.financeplanner.service.AnalyticsService;
@@ -73,6 +75,30 @@ class AnalyticsControllerTest {
                 .andExpect(jsonPath("$.bookedSavings").value(2400))
                 .andExpect(jsonPath("$.freeSurplus").value(1200))
                 .andExpect(jsonPath("$.totalAmount").value(3600));
+    }
+
+    @Test
+    void incomeSummaryUsesTheRequestedGroupingAndReturnsAverages() throws Exception {
+        LocalDate from = LocalDate.of(2026, 1, 1);
+        LocalDate to = LocalDate.of(2026, 2, 28);
+        when(service.getIncomeSummary(from, to, "person")).thenReturn(new IncomeSummaryResponse(
+                "person",
+                List.of(new IncomeSegmentResponse("person-0", "Ohne Person", 400, 200)),
+                400,
+                2));
+
+        mockMvc.perform(get("/analytics/income-summary")
+                .param("from", "2026-01-01")
+                .param("to", "2026-02-28")
+                .param("groupBy", "person"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groupBy").value("person"))
+                .andExpect(jsonPath("$.items[0].name").value("Ohne Person"))
+                .andExpect(jsonPath("$.items[0].averagePerMonth").value(200))
+                .andExpect(jsonPath("$.totalAmount").value(400))
+                .andExpect(jsonPath("$.monthCount").value(2));
+
+        verify(service).getIncomeSummary(from, to, "person");
     }
 
     @Test

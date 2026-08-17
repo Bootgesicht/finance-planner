@@ -199,26 +199,37 @@ public class AnalyticsRepository {
     }
 
     public List<PersonSummaryResponse> getPersonSummary(LocalDate from, LocalDate to) {
+        return getPersonSummaryByKind(from, to, "EXPENSE", false);
+    }
+
+    public List<PersonSummaryResponse> getIncomePersonSummary(LocalDate from, LocalDate to) {
+        return getPersonSummaryByKind(from, to, "INCOME", true);
+    }
+
+    private List<PersonSummaryResponse> getPersonSummaryByKind(
+            LocalDate from, LocalDate to, String kind, boolean includeUnassigned) {
         List<PersonSummaryResponse> summaries = new ArrayList<>();
+        String personJoin = includeUnassigned ? "LEFT JOIN" : "JOIN";
         String sql = """
-                SELECT p.id AS person_id, p.name AS person_name,
+                SELECT e.person_id AS person_id, COALESCE(p.name, 'Ohne Person') AS person_name,
                        ROUND(SUM(e.amount), 2) AS total_amount
                 FROM entries e
                 JOIN subcategories s ON e.subcategory_id = s.id
                 JOIN categories c ON s.category_id = c.id
-                JOIN persons p ON e.person_id = p.id
-                WHERE e.entry_date BETWEEN ? AND ? AND c.kind = 'EXPENSE'
-                GROUP BY p.id, p.name
+                %s persons p ON e.person_id = p.id
+                WHERE e.entry_date BETWEEN ? AND ? AND c.kind = ?
+                GROUP BY e.person_id, p.name
                 ORDER BY total_amount DESC
-                """;
+                """.formatted(personJoin);
 
         try (Connection connection = databaseConnection.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
             setDateRange(statement, from, to);
+            statement.setString(3, kind);
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
                     summaries.add(new PersonSummaryResponse(
-                            result.getInt("person_id"),
+                            result.getObject("person_id") == null ? 0 : result.getInt("person_id"),
                             result.getString("person_name"),
                             result.getDouble("total_amount")));
                 }

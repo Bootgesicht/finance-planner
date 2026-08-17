@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
     getAnalyticsOverview,
     getCategorySummary,
+    getIncomeSummary,
     getMonthlyBalance,
     getPersonSummary,
     getSavingsSummary,
     getSubcategorySummary
 } from '../api/analyticsApi'
 import AnalyticsDoughnutChart from '../components/AnalyticsDoughnutChart'
-import { getAnalyticsChartColor } from '../components/analyticsChartColors'
+import AnalyticsAverageCards from '../components/AnalyticsAverageCards'
 
 const EMPTY_OVERVIEW = {
     income: 0,
@@ -98,6 +99,9 @@ function AnalyticsPage() {
     const [subcategorySummary, setSubcategorySummary] = useState([])
     const [personSummary, setPersonSummary] = useState([])
     const [savingsSummary, setSavingsSummary] = useState(EMPTY_SAVINGS)
+    const [incomeCategorySummary, setIncomeCategorySummary] = useState([])
+    const [incomePersonSummary, setIncomePersonSummary] = useState([])
+    const [incomeMode, setIncomeMode] = useState('category')
     const [errorMessage, setErrorMessage] = useState('')
     const [successMessage, setSuccessMessage] = useState('')
     const [loading, setLoading] = useState(false)
@@ -108,14 +112,25 @@ function AnalyticsPage() {
         setSuccessMessage('')
 
         try {
-            const [overviewData, monthlyData, categoryData, subcategoryData, personData, savingsData] =
+            const [
+                overviewData,
+                monthlyData,
+                categoryData,
+                subcategoryData,
+                personData,
+                savingsData,
+                incomeCategoryData,
+                incomePersonData
+            ] =
                 await Promise.all([
                     getAnalyticsOverview(from, to),
                     getMonthlyBalance(from, to),
                     getCategorySummary(from, to, 'EXPENSE'),
                     getSubcategorySummary(from, to, 'EXPENSE'),
                     getPersonSummary(from, to),
-                    getSavingsSummary(from, to)
+                    getSavingsSummary(from, to),
+                    getIncomeSummary(from, to, 'category'),
+                    getIncomeSummary(from, to, 'person')
                 ])
 
             setOverview({ ...EMPTY_OVERVIEW, ...overviewData })
@@ -124,6 +139,8 @@ function AnalyticsPage() {
             setSubcategorySummary(Array.isArray(subcategoryData) ? subcategoryData : [])
             setPersonSummary(Array.isArray(personData) ? personData : [])
             setSavingsSummary({ ...EMPTY_SAVINGS, ...savingsData })
+            setIncomeCategorySummary(Array.isArray(incomeCategoryData?.items) ? incomeCategoryData.items : [])
+            setIncomePersonSummary(Array.isArray(incomePersonData?.items) ? incomePersonData.items : [])
             setAppliedRange({ from, to })
             setSuccessMessage(`Auswertung für ${formatPeriodLabel(from, to)} geladen.`)
         } catch (error) {
@@ -143,23 +160,41 @@ function AnalyticsPage() {
     const categoryItems = useMemo(() => categorySummary.map(category => ({
         id: `category-${category.categoryId}`,
         label: category.categoryName,
-        amount: category.totalAmount
+        amount: category.totalAmount,
+        averagePerMonth: category.averagePerMonth
     })), [categorySummary])
 
     const subcategoryItems = useMemo(() => subcategorySummary.map(subcategory => ({
         id: `subcategory-${subcategory.subcategoryId}`,
         label: `${subcategory.categoryName} – ${subcategory.subcategoryName}`,
-        amount: subcategory.totalAmount
+        amount: subcategory.totalAmount,
+        averagePerMonth: subcategory.averagePerMonth
     })), [subcategorySummary])
 
     const personItems = useMemo(() => personSummary.map(person => ({
         id: `person-${person.personId}`,
         label: person.personName,
-        amount: person.totalAmount
+        amount: person.totalAmount,
+        averagePerMonth: person.averagePerMonth
     })), [personSummary])
 
     const savingsItems = useMemo(() => (Array.isArray(savingsSummary.items) ? savingsSummary.items : [])
-        .map(item => ({ id: item.id, label: item.name, amount: item.totalAmount })), [savingsSummary.items])
+        .map(item => ({
+            id: item.id,
+            label: item.name,
+            amount: item.totalAmount,
+            averagePerMonth: item.averagePerMonth
+        })), [savingsSummary.items])
+
+    const incomeItems = useMemo(() => {
+        const source = incomeMode === 'category' ? incomeCategorySummary : incomePersonSummary
+        return source.map(item => ({
+            id: item.id,
+            label: item.name,
+            amount: item.totalAmount,
+            averagePerMonth: item.averagePerMonth
+        }))
+    }, [incomeCategorySummary, incomeMode, incomePersonSummary])
 
     function handleSubmit(event) {
         event.preventDefault()
@@ -199,6 +234,7 @@ function AnalyticsPage() {
                         <a className="nav-link" href="#subcategory-summary">Subkategorien</a>
                         <a className="nav-link" href="#person-summary">Personen</a>
                         <a className="nav-link" href="#savings-summary">Sparen</a>
+                        <a className="nav-link" href="#income-summary">Einnahmen</a>
                         <a className="nav-link" href="#year-comparison">Jahresvergleich</a>
                     </nav>
                 </div>
@@ -288,29 +324,9 @@ function AnalyticsPage() {
                         <>
                             <AnalyticsDoughnutChart items={categoryItems}
                                 ariaLabel="Ausgaben nach Kategorien als Doughnut-Diagramm" />
-                            <div className="border-top mt-4 pt-4">
-                                <h6 className="mb-3">Monatlicher Durchschnitt nach Kategorie</h6>
-                                <div className="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
-                                    {categorySummary.map((category, index) => (
-                                        <div className="col" key={category.categoryId}>
-                                            <div className="card h-100" style={{ borderColor: getAnalyticsChartColor(index) }}>
-                                                <div className="card-body py-3">
-                                                    <div className="d-flex align-items-center gap-2 mb-1">
-                                                        <span className="rounded-circle" aria-hidden="true" style={{
-                                                            backgroundColor: getAnalyticsChartColor(index),
-                                                            height: '0.75rem', width: '0.75rem'
-                                                        }} />
-                                                        <span className="fw-semibold">{category.categoryName}</span>
-                                                    </div>
-                                                    <span className="text-muted">
-                                                        Ø {formatAmount(category.averagePerMonth)} € / Monat
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            <AnalyticsAverageCards items={categoryItems}
+                                heading="Monatlicher Durchschnitt nach Kategorie"
+                                ariaLabel="Durchschnittsausgaben nach Kategorien" />
                         </>
                     )}
                 </div>
@@ -325,8 +341,13 @@ function AnalyticsPage() {
                             Für den ausgewählten Zeitraum sind keine Ausgaben nach Subkategorien vorhanden.
                         </p>
                     ) : (
-                        <AnalyticsDoughnutChart items={subcategoryItems}
-                            ariaLabel="Ausgaben nach Subkategorien als Doughnut-Diagramm" />
+                        <>
+                            <AnalyticsDoughnutChart items={subcategoryItems}
+                                ariaLabel="Ausgaben nach Subkategorien als Doughnut-Diagramm" />
+                            <AnalyticsAverageCards items={subcategoryItems}
+                                heading="Monatlicher Durchschnitt nach Subkategorie"
+                                ariaLabel="Durchschnittsausgaben nach Subkategorien" />
+                        </>
                     )}
                 </div>
             </section>
@@ -340,8 +361,13 @@ function AnalyticsPage() {
                             Für den ausgewählten Zeitraum sind keine personenbezogenen Ausgaben vorhanden.
                         </p>
                     ) : (
-                        <AnalyticsDoughnutChart items={personItems}
-                            ariaLabel="Ausgaben nach Personen als Doughnut-Diagramm" />
+                        <>
+                            <AnalyticsDoughnutChart items={personItems}
+                                ariaLabel="Ausgaben nach Personen als Doughnut-Diagramm" />
+                            <AnalyticsAverageCards items={personItems}
+                                heading="Monatlicher Durchschnitt nach Person"
+                                ariaLabel="Durchschnittsausgaben nach Personen" />
+                        </>
                     )}
                 </div>
             </section>
@@ -355,8 +381,55 @@ function AnalyticsPage() {
                             Für den ausgewählten Zeitraum sind keine Sparbeträge vorhanden.
                         </p>
                     ) : (
-                        <AnalyticsDoughnutChart items={savingsItems}
-                            ariaLabel="Sparen und Investieren als Doughnut-Diagramm" />
+                        <>
+                            <AnalyticsDoughnutChart items={savingsItems}
+                                ariaLabel="Sparen und Investieren als Doughnut-Diagramm" />
+                            <AnalyticsAverageCards items={savingsItems}
+                                heading="Monatlicher Durchschnitt für Sparen und Investieren"
+                                ariaLabel="Durchschnitt für Sparen und Investieren" />
+                        </>
+                    )}
+                </div>
+            </section>
+
+            <section id="income-summary" className="card mt-4">
+                <div className="card-body">
+                    <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-2">
+                        <h5 className="card-title mb-0">Einnahmen</h5>
+                        <div className="btn-group btn-group-sm" role="group" aria-label="Einnahmen gruppieren nach">
+                            <button
+                                type="button"
+                                className={`btn ${incomeMode === 'category' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                aria-pressed={incomeMode === 'category'}
+                                onClick={() => setIncomeMode('category')}
+                            >
+                                Kategorien
+                            </button>
+                            <button
+                                type="button"
+                                className={`btn ${incomeMode === 'person' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                aria-pressed={incomeMode === 'person'}
+                                onClick={() => setIncomeMode('person')}
+                            >
+                                Personen
+                            </button>
+                        </div>
+                    </div>
+                    <p className="text-muted mb-4">Zeitraum: {periodLabel}</p>
+                    {incomeItems.length === 0 ? (
+                        <p className="text-muted mb-0">
+                            {incomeMode === 'category'
+                                ? 'Für den ausgewählten Zeitraum sind keine Einnahmen vorhanden.'
+                                : 'Für den ausgewählten Zeitraum sind keine personenbezogenen Einnahmen vorhanden.'}
+                        </p>
+                    ) : (
+                        <>
+                            <AnalyticsDoughnutChart items={incomeItems}
+                                ariaLabel={`Einnahmen nach ${incomeMode === 'category' ? 'Kategorien' : 'Personen'} als Doughnut-Diagramm`} />
+                            <AnalyticsAverageCards items={incomeItems}
+                                heading={`Monatlicher Durchschnitt nach ${incomeMode === 'category' ? 'Kategorie' : 'Person'}`}
+                                ariaLabel={`Durchschnittseinnahmen nach ${incomeMode === 'category' ? 'Kategorien' : 'Personen'}`} />
+                        </>
                     )}
                 </div>
             </section>

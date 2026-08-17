@@ -5,6 +5,7 @@ import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.bootgesicht.financeplanner.dto.AnalyticsOverviewResponse;
 import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
+import com.bootgesicht.financeplanner.dto.IncomeSegmentResponse;
+import com.bootgesicht.financeplanner.dto.IncomeSummaryResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
 import com.bootgesicht.financeplanner.dto.PersonSummaryResponse;
 import com.bootgesicht.financeplanner.dto.SavingsSegmentResponse;
@@ -48,7 +51,7 @@ public class AnalyticsService {
                         category.getCategoryName(),
                         category.getCategoryKind(),
                         category.getTotalAmount(),
-                        roundCurrency(category.getTotalAmount() / monthCount),
+                        calculateAverage(category.getTotalAmount(), monthCount),
                         monthCount))
                 .toList();
     }
@@ -56,12 +59,28 @@ public class AnalyticsService {
     public List<SubcategorySummaryResponse> getSubcategorySummary(
             LocalDate from, LocalDate to, Integer categoryId, String kind) {
         validateDateRange(from, to);
-        return analyticsRepository.getSubcategorySummary(from, to, categoryId, kind);
+        long monthCount = getTouchedMonthCount(from, to);
+
+        return analyticsRepository.getSubcategorySummary(from, to, categoryId, kind).stream()
+                .map(subcategory -> new SubcategorySummaryResponse(
+                        subcategory.getSubcategoryId(),
+                        subcategory.getSubcategoryName(),
+                        subcategory.getCategoryId(),
+                        subcategory.getCategoryName(),
+                        subcategory.getCategoryKind(),
+                        subcategory.getTotalAmount(),
+                        calculateAverage(subcategory.getTotalAmount(), monthCount),
+                        monthCount))
+                .toList();
     }
 
     public List<PersonSummaryResponse> getPersonSummary(LocalDate from, LocalDate to) {
         validateDateRange(from, to);
-        return analyticsRepository.getPersonSummary(from, to);
+        long monthCount = getTouchedMonthCount(from, to);
+
+        return analyticsRepository.getPersonSummary(from, to).stream()
+                .map(person -> withAverage(person, monthCount))
+                .toList();
     }
 
     public SavingsSummaryResponse getSavingsSummary(LocalDate from, LocalDate to) {
@@ -70,13 +89,16 @@ public class AnalyticsService {
                 .getSubcategorySummary(from, to, null, "SAVING");
         AnalyticsOverviewResponse overview = analyticsRepository.getOverview(from, to);
         List<SavingsSegmentResponse> items = new ArrayList<>();
+        long monthCount = getTouchedMonthCount(from, to);
 
         for (SubcategorySummaryResponse item : bookedItems) {
             items.add(new SavingsSegmentResponse(
                     "subcategory-" + item.getSubcategoryId(),
                     item.getSubcategoryName(),
                     item.getTotalAmount(),
-                    "BOOKED"));
+                    "BOOKED",
+                    calculateAverage(item.getTotalAmount(), monthCount),
+                    monthCount));
         }
 
         double bookedSavings = roundCurrency(bookedItems.stream()
@@ -91,7 +113,9 @@ public class AnalyticsService {
                     "free-surplus",
                     "Freier Überschuss",
                     freeSurplus,
-                    "FREE_SURPLUS"));
+                    "FREE_SURPLUS",
+                    calculateAverage(freeSurplus, monthCount),
+                    monthCount));
         }
 
         return new SavingsSummaryResponse(
@@ -99,6 +123,38 @@ public class AnalyticsService {
                 bookedSavings,
                 freeSurplus,
                 roundCurrency(bookedSavings + freeSurplus));
+    }
+
+    public IncomeSummaryResponse getIncomeSummary(LocalDate from, LocalDate to, String groupBy) {
+        validateDateRange(from, to);
+        String normalizedGroupBy = groupBy == null ? "category" : groupBy.toLowerCase(Locale.ROOT);
+        long monthCount = getTouchedMonthCount(from, to);
+        List<IncomeSegmentResponse> items;
+
+        if ("category".equals(normalizedGroupBy)) {
+            items = analyticsRepository.getCategorySummary(from, to, "INCOME").stream()
+                    .map(category -> new IncomeSegmentResponse(
+                            "category-" + category.getCategoryId(),
+                            category.getCategoryName(),
+                            category.getTotalAmount(),
+                            calculateAverage(category.getTotalAmount(), monthCount)))
+                    .toList();
+        } else if ("person".equals(normalizedGroupBy)) {
+            items = analyticsRepository.getIncomePersonSummary(from, to).stream()
+                    .map(person -> new IncomeSegmentResponse(
+                            "person-" + person.getPersonId(),
+                            person.getPersonName(),
+                            person.getTotalAmount(),
+                            calculateAverage(person.getTotalAmount(), monthCount)))
+                    .toList();
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'groupBy' must be 'category' or 'person'");
+        }
+
+        double totalAmount = roundCurrency(items.stream()
+                .mapToDouble(IncomeSegmentResponse::getTotalAmount)
+                .sum());
+        return new IncomeSummaryResponse(normalizedGroupBy, items, totalAmount, monthCount);
     }
 
     long getTouchedMonthCount(LocalDate from, LocalDate to) {
@@ -114,5 +170,18 @@ public class AnalyticsService {
 
     private double roundCurrency(double amount) {
         return Math.round(amount * 100.0) / 100.0;
+    }
+
+    private double calculateAverage(double totalAmount, long monthCount) {
+        return roundCurrency(totalAmount / monthCount);
+    }
+
+    private PersonSummaryResponse withAverage(PersonSummaryResponse person, long monthCount) {
+        return new PersonSummaryResponse(
+                person.getPersonId(),
+                person.getPersonName(),
+                person.getTotalAmount(),
+                calculateAverage(person.getTotalAmount(), monthCount),
+                monthCount);
     }
 }
