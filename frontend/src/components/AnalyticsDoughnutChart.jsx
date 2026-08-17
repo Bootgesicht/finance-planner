@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
 import Chart from 'chart.js/auto'
 import { getAnalyticsChartColor } from './analyticsChartColors'
+import './AnalyticsDoughnutChart.css'
+
+const MAX_VISIBLE_LEGEND_ITEMS = 9
 
 function formatCurrency(amount) {
     return Number(amount || 0).toLocaleString('de-DE', {
@@ -12,6 +15,7 @@ function formatCurrency(amount) {
 function AnalyticsDoughnutChart({ items, ariaLabel }) {
     const canvasRef = useRef(null)
     const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+    const hasScrollableLegend = items.length > MAX_VISIBLE_LEGEND_ITEMS
 
     useEffect(() => {
         if (!canvasRef.current || items.length === 0) return undefined
@@ -72,39 +76,50 @@ function AnalyticsDoughnutChart({ items, ariaLabel }) {
     }, [ariaLabel, items, total])
 
     return (
-        <div className="row g-4 align-items-center">
+        <div className="row g-4 align-items-center analytics-doughnut-layout">
             <div className="col-12 col-lg-7">
-                <div className="position-relative mx-auto" style={{ height: '360px', maxWidth: '560px' }}>
+                <div className="position-relative mx-auto analytics-doughnut-chart-container">
                     <canvas ref={canvasRef} role="img" aria-label={ariaLabel} />
                 </div>
             </div>
-            <div className="col-12 col-lg-5">
-                <ul className="list-group list-group-flush" aria-label={`${ariaLabel} – Legende`}>
-                    {items.map((item, index) => (
-                        <li
-                            className="list-group-item d-flex justify-content-between align-items-center gap-3 px-0"
-                            key={item.id}
-                        >
-                            <span className="d-flex align-items-center gap-2">
-                                <span
-                                    aria-hidden="true"
-                                    className="rounded-circle flex-shrink-0"
-                                    style={{
-                                        backgroundColor: getAnalyticsChartColor(index),
-                                        height: '0.8rem',
-                                        width: '0.8rem'
-                                    }}
-                                />
-                                {item.label}
-                            </span>
-                            <span className="fw-semibold text-nowrap">{formatCurrency(item.amount)}</span>
-                        </li>
-                    ))}
-                    <li className="list-group-item d-flex justify-content-between px-0 border-top fw-bold">
-                        <span>Gesamt</span>
-                        <span>{formatCurrency(total)}</span>
-                    </li>
-                </ul>
+            <div className="col-12 col-lg-5 analytics-doughnut-legend-column">
+                <div
+                    aria-label={`${ariaLabel} – Legendeneinträge`}
+                    className={`analytics-doughnut-legend-items${
+                        hasScrollableLegend ? ' analytics-doughnut-legend-items--scrollable' : ''
+                    }`}
+                    data-scrollable={hasScrollableLegend}
+                >
+                    <ul className="list-group list-group-flush mb-0">
+                        {items.map((item, index) => (
+                            <li
+                                className="list-group-item d-flex justify-content-between align-items-center gap-3 px-0 analytics-doughnut-legend-item"
+                                key={item.id}
+                            >
+                                <span className="d-flex align-items-center gap-2 analytics-doughnut-legend-label">
+                                    <span
+                                        aria-hidden="true"
+                                        className="rounded-circle flex-shrink-0 analytics-doughnut-legend-color"
+                                        style={{ backgroundColor: getAnalyticsChartColor(index) }}
+                                    />
+                                    <span className="analytics-doughnut-legend-name" title={item.label}>
+                                        {item.label}
+                                    </span>
+                                </span>
+                                <span className="fw-semibold analytics-doughnut-legend-amount">
+                                    {formatCurrency(item.amount)}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                <div
+                    aria-label={`${ariaLabel} – Gesamt`}
+                    className="list-group-item d-flex justify-content-between align-items-center px-0 border-top fw-bold analytics-doughnut-total"
+                >
+                    <span>Gesamt</span>
+                    <span className="text-nowrap">{formatCurrency(total)}</span>
+                </div>
             </div>
         </div>
     )

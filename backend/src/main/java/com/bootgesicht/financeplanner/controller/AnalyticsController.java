@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.bootgesicht.financeplanner.dto.AnalyticsOverviewResponse;
 import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
+import com.bootgesicht.financeplanner.dto.IncomeSummaryResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
 import com.bootgesicht.financeplanner.dto.PersonSummaryResponse;
 import com.bootgesicht.financeplanner.dto.SavingsSummaryResponse;
@@ -70,5 +71,13 @@ public class AnalyticsController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         return analyticsService.getSavingsSummary(from, to);
+    }
+
+    @GetMapping("/income-summary")
+    public IncomeSummaryResponse getIncomeSummary(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "category") String groupBy) {
+        return analyticsService.getIncomeSummary(from, to, groupBy);
     }
 }

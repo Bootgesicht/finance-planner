@@ -22,6 +22,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.bootgesicht.financeplanner.dto.AnalyticsOverviewResponse;
 import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
+import com.bootgesicht.financeplanner.dto.IncomeSummaryResponse;
+import com.bootgesicht.financeplanner.dto.PersonSummaryResponse;
 import com.bootgesicht.financeplanner.dto.SavingsSummaryResponse;
 import com.bootgesicht.financeplanner.dto.SubcategorySummaryResponse;
 import com.bootgesicht.financeplanner.repository.AnalyticsRepository;
@@ -45,12 +47,16 @@ class AnalyticsServiceTest {
         service.getCategorySummary(from, to, "EXPENSE");
         service.getSubcategorySummary(from, to, 4, "EXPENSE");
         service.getPersonSummary(from, to);
+        service.getIncomeSummary(from, to, "category");
+        service.getIncomeSummary(from, to, "person");
 
         verify(repository).getOverview(from, to);
         verify(repository).getMonthlyBalance(from, to);
         verify(repository).getCategorySummary(from, to, "EXPENSE");
         verify(repository).getSubcategorySummary(from, to, 4, "EXPENSE");
         verify(repository).getPersonSummary(from, to);
+        verify(repository).getCategorySummary(from, to, "INCOME");
+        verify(repository).getIncomePersonSummary(from, to);
     }
 
     @ParameterizedTest
@@ -76,6 +82,26 @@ class AnalyticsServiceTest {
     }
 
     @Test
+    void addsTheSameTouchedMonthAverageToSubcategoriesAndPersons() {
+        LocalDate from = LocalDate.of(2025, 12, 15);
+        LocalDate to = LocalDate.of(2026, 2, 2);
+        when(repository.getSubcategorySummary(from, to, null, "EXPENSE"))
+                .thenReturn(List.of(new SubcategorySummaryResponse(
+                        1, "Strom", 2, "Wohnen", "EXPENSE", 600)));
+        when(repository.getPersonSummary(from, to))
+                .thenReturn(List.of(new PersonSummaryResponse(1, "Jonas", 450)));
+
+        SubcategorySummaryResponse subcategory = service
+                .getSubcategorySummary(from, to, null, "EXPENSE").get(0);
+        PersonSummaryResponse person = service.getPersonSummary(from, to).get(0);
+
+        assertThat(subcategory.getMonthCount()).isEqualTo(3);
+        assertThat(subcategory.getAveragePerMonth()).isEqualTo(200);
+        assertThat(person.getMonthCount()).isEqualTo(3);
+        assertThat(person.getAveragePerMonth()).isEqualTo(150);
+    }
+
+    @Test
     void addsPositiveFreeBalanceAsFreeSurplusToBookedSavings() {
         LocalDate from = LocalDate.of(2026, 1, 1);
         LocalDate to = LocalDate.of(2026, 12, 31);
@@ -91,6 +117,10 @@ class AnalyticsServiceTest {
         assertThat(result.getBookedSavings()).isEqualTo(3067.11);
         assertThat(result.getFreeSurplus()).isEqualTo(1207.71);
         assertThat(result.getTotalAmount()).isEqualTo(4274.82);
+        assertThat(result.getItems()).extracting(item -> item.getAveragePerMonth())
+                .containsExactly(200.0, 55.59, 100.64);
+        assertThat(result.getItems()).extracting(item -> item.getMonthCount())
+                .containsOnly(12L);
     }
 
     @ParameterizedTest
@@ -115,6 +145,54 @@ class AnalyticsServiceTest {
     void rejectsAnInvertedDateRange() {
         assertThatThrownBy(() -> service.getPersonSummary(
                 LocalDate.of(2026, 2, 1), LocalDate.of(2026, 1, 31)))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
+                        .isEqualTo(HttpStatus.BAD_REQUEST));
+    }
+
+    @Test
+    void groupsIncomeByCategoryAndCalculatesAverages() {
+        LocalDate from = LocalDate.of(2026, 1, 15);
+        LocalDate to = LocalDate.of(2026, 3, 20);
+        when(repository.getCategorySummary(from, to, "INCOME"))
+                .thenReturn(List.of(
+                        new CategorySummaryResponse(1, "Einkommen", "INCOME", 6000),
+                        new CategorySummaryResponse(2, "Geldgeschenke", "INCOME", 300)));
+
+        IncomeSummaryResponse result = service.getIncomeSummary(from, to, "category");
+
+        assertThat(result.getGroupBy()).isEqualTo("category");
+        assertThat(result.getMonthCount()).isEqualTo(3);
+        assertThat(result.getTotalAmount()).isEqualTo(6300);
+        assertThat(result.getItems()).extracting(item -> item.getName())
+                .containsExactly("Einkommen", "Geldgeschenke");
+        assertThat(result.getItems()).extracting(item -> item.getAveragePerMonth())
+                .containsExactly(2000.0, 100.0);
+    }
+
+    @Test
+    void groupsIncomeByPersonAndKeepsTheUnassignedSegment() {
+        LocalDate from = LocalDate.of(2026, 1, 1);
+        LocalDate to = LocalDate.of(2026, 2, 28);
+        when(repository.getIncomePersonSummary(from, to))
+                .thenReturn(List.of(
+                        new PersonSummaryResponse(1, "Jonas", 3000),
+                        new PersonSummaryResponse(0, "Ohne Person", 400)));
+
+        IncomeSummaryResponse result = service.getIncomeSummary(from, to, "PERSON");
+
+        assertThat(result.getGroupBy()).isEqualTo("person");
+        assertThat(result.getTotalAmount()).isEqualTo(3400);
+        assertThat(result.getItems()).extracting(item -> item.getName())
+                .containsExactly("Jonas", "Ohne Person");
+        assertThat(result.getItems()).extracting(item -> item.getAveragePerMonth())
+                .containsExactly(1500.0, 200.0);
+    }
+
+    @Test
+    void rejectsAnUnsupportedIncomeGrouping() {
+        assertThatThrownBy(() -> service.getIncomeSummary(
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31), "subcategory"))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
                         .isEqualTo(HttpStatus.BAD_REQUEST));

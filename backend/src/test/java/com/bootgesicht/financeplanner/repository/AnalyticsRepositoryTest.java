@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.bootgesicht.financeplanner.dto.AnalyticsOverviewResponse;
+import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
 import com.bootgesicht.financeplanner.dto.PersonSummaryResponse;
 import com.bootgesicht.financeplanner.dto.SubcategorySummaryResponse;
@@ -51,12 +52,14 @@ class AnalyticsRepositoryTest {
             statement.executeUpdate("INSERT INTO categories VALUES (2, 'Wohnen', 'EXPENSE')");
             statement.executeUpdate("INSERT INTO categories VALUES (3, 'Investieren', 'SAVING')");
             statement.executeUpdate("INSERT INTO categories VALUES (4, 'Freizeit', 'EXPENSE')");
+            statement.executeUpdate("INSERT INTO categories VALUES (5, 'Geldgeschenke', 'INCOME')");
             statement.executeUpdate("INSERT INTO subcategories VALUES (1, 1, 'Gehalt')");
             statement.executeUpdate("INSERT INTO subcategories VALUES (2, 2, 'Miete')");
             statement.executeUpdate("INSERT INTO subcategories VALUES (3, 3, 'ETF-Sparen')");
             statement.executeUpdate("INSERT INTO subcategories VALUES (4, 4, 'Hobby')");
             statement.executeUpdate("INSERT INTO subcategories VALUES (5, 3, 'Einzelaktien-Sparen')");
             statement.executeUpdate("INSERT INTO subcategories VALUES (6, 2, 'Strom')");
+            statement.executeUpdate("INSERT INTO subcategories VALUES (7, 5, 'Geschenk')");
             statement.executeUpdate("INSERT INTO persons VALUES (1, 'Jonas', 'ADULT')");
             statement.executeUpdate("INSERT INTO persons VALUES (2, 'Familie', 'HOUSEHOLD')");
 
@@ -70,6 +73,8 @@ class AnalyticsRepositoryTest {
             insertEntry(statement, 8, "2026-02-10", 300, 4, 1);
             insertEntry(statement, 9, "2026-03-01", 500, 1, 1);
             insertEntry(statement, 10, "2027-01-01", 999, 1, 1);
+            insertEntry(statement, 11, "2026-01-30", 100, 7, 2);
+            insertEntryWithoutPerson(statement, 12, "2026-02-15", 400, 7);
         }
     }
 
@@ -81,11 +86,11 @@ class AnalyticsRepositoryTest {
         AnalyticsOverviewResponse overview = repository.getOverview(from, to);
         List<MonthlyBalanceResponse> months = repository.getMonthlyBalance(from, to);
 
-        assertThat(overview.getIncome()).isEqualTo(4000);
+        assertThat(overview.getIncome()).isEqualTo(4100);
         assertThat(overview.getExpenses()).isEqualTo(2200);
         assertThat(overview.getSavings()).isEqualTo(700);
-        assertThat(overview.getBalanceBeforeSavings()).isEqualTo(1800);
-        assertThat(overview.getFreeBalanceAfterSavings()).isEqualTo(1100);
+        assertThat(overview.getBalanceBeforeSavings()).isEqualTo(1900);
+        assertThat(overview.getFreeBalanceAfterSavings()).isEqualTo(1200);
         assertThat(months).extracting(MonthlyBalanceResponse::getMonth)
                 .containsExactly("2025-12", "2026-01", "2026-02");
     }
@@ -133,6 +138,52 @@ class AnalyticsRepositoryTest {
     }
 
     @Test
+    void groupsOnlyIncomeByCategoryAndKeepsTheOverviewTotal() {
+        LocalDate from = LocalDate.of(2026, 1, 1);
+        LocalDate to = LocalDate.of(2026, 2, 28);
+
+        List<CategorySummaryResponse> income = repository.getCategorySummary(from, to, "INCOME");
+        AnalyticsOverviewResponse overview = repository.getOverview(from, to);
+
+        assertThat(income).extracting(CategorySummaryResponse::getCategoryName)
+                .containsExactly("Einkommen", "Geldgeschenke");
+        assertThat(income).extracting(CategorySummaryResponse::getTotalAmount)
+                .containsExactly(3000.0, 500.0);
+        assertThat(income.stream().mapToDouble(CategorySummaryResponse::getTotalAmount).sum())
+                .isEqualTo(overview.getIncome());
+    }
+
+    @Test
+    void groupsIncomeByPersonWithoutLosingUnassignedEntries() {
+        LocalDate from = LocalDate.of(2026, 1, 1);
+        LocalDate to = LocalDate.of(2026, 2, 28);
+        List<PersonSummaryResponse> income = repository.getIncomePersonSummary(from, to);
+        AnalyticsOverviewResponse overview = repository.getOverview(from, to);
+
+        assertThat(income).extracting(PersonSummaryResponse::getPersonName)
+                .containsExactly("Jonas", "Ohne Person", "Familie");
+        assertThat(income).extracting(PersonSummaryResponse::getTotalAmount)
+                .containsExactly(3000.0, 400.0, 100.0);
+        assertThat(income.stream().mapToDouble(PersonSummaryResponse::getTotalAmount).sum())
+                .isEqualTo(overview.getIncome());
+    }
+
+    @Test
+    void incomeGroupingRespectsPartialAndCrossYearDateRanges() {
+        List<CategorySummaryResponse> crossYear = repository.getCategorySummary(
+                LocalDate.of(2025, 12, 31), LocalDate.of(2026, 1, 30), "INCOME");
+        List<PersonSummaryResponse> partialMonth = repository.getIncomePersonSummary(
+                LocalDate.of(2026, 1, 16), LocalDate.of(2026, 2, 10));
+
+        assertThat(crossYear.stream().mapToDouble(CategorySummaryResponse::getTotalAmount).sum())
+                .isEqualTo(4100);
+        assertThat(partialMonth).singleElement().satisfies(person -> {
+            assertThat(person.getPersonName()).isEqualTo("Familie");
+            assertThat(person.getTotalAmount()).isEqualTo(100);
+        });
+    }
+
+    @Test
     void returnsZerosAndEmptyCollectionsForAnEmptyPeriod() {
         LocalDate from = LocalDate.of(2024, 1, 1);
         LocalDate to = LocalDate.of(2024, 12, 31);
@@ -145,11 +196,19 @@ class AnalyticsRepositoryTest {
         assertThat(repository.getMonthlyBalance(from, to)).isEmpty();
         assertThat(repository.getSubcategorySummary(from, to, null, "EXPENSE")).isEmpty();
         assertThat(repository.getPersonSummary(from, to)).isEmpty();
+        assertThat(repository.getCategorySummary(from, to, "INCOME")).isEmpty();
+        assertThat(repository.getIncomePersonSummary(from, to)).isEmpty();
     }
 
     private void insertEntry(Statement statement, int id, String date, double amount,
             int subcategoryId, int personId) throws Exception {
         statement.executeUpdate("INSERT INTO entries VALUES ("
                 + id + ", '" + date + "', " + amount + ", " + subcategoryId + ", " + personId + ")");
+    }
+
+    private void insertEntryWithoutPerson(Statement statement, int id, String date, double amount,
+            int subcategoryId) throws Exception {
+        statement.executeUpdate("INSERT INTO entries VALUES ("
+                + id + ", '" + date + "', " + amount + ", " + subcategoryId + ", NULL)");
     }
 }
