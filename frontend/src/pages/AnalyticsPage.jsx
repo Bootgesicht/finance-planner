@@ -99,9 +99,9 @@ function AnalyticsPage() {
     const [subcategorySummary, setSubcategorySummary] = useState([])
     const [personSummary, setPersonSummary] = useState([])
     const [savingsSummary, setSavingsSummary] = useState(EMPTY_SAVINGS)
-    const [incomeCategorySummary, setIncomeCategorySummary] = useState([])
+    const [incomeSubcategorySummary, setIncomeSubcategorySummary] = useState([])
     const [incomePersonSummary, setIncomePersonSummary] = useState([])
-    const [incomeMode, setIncomeMode] = useState('category')
+    const [incomeMode, setIncomeMode] = useState('subcategory')
     const [errorMessage, setErrorMessage] = useState('')
     const [successMessage, setSuccessMessage] = useState('')
     const [loading, setLoading] = useState(false)
@@ -119,7 +119,7 @@ function AnalyticsPage() {
                 subcategoryData,
                 personData,
                 savingsData,
-                incomeCategoryData,
+                incomeSubcategoryData,
                 incomePersonData
             ] =
                 await Promise.all([
@@ -129,7 +129,7 @@ function AnalyticsPage() {
                     getSubcategorySummary(from, to, 'EXPENSE'),
                     getPersonSummary(from, to),
                     getSavingsSummary(from, to),
-                    getIncomeSummary(from, to, 'category'),
+                    getIncomeSummary(from, to, 'subcategory'),
                     getIncomeSummary(from, to, 'person')
                 ])
 
@@ -139,7 +139,9 @@ function AnalyticsPage() {
             setSubcategorySummary(Array.isArray(subcategoryData) ? subcategoryData : [])
             setPersonSummary(Array.isArray(personData) ? personData : [])
             setSavingsSummary({ ...EMPTY_SAVINGS, ...savingsData })
-            setIncomeCategorySummary(Array.isArray(incomeCategoryData?.items) ? incomeCategoryData.items : [])
+            setIncomeSubcategorySummary(
+                Array.isArray(incomeSubcategoryData?.items) ? incomeSubcategoryData.items : []
+            )
             setIncomePersonSummary(Array.isArray(incomePersonData?.items) ? incomePersonData.items : [])
             setAppliedRange({ from, to })
             setSuccessMessage(`Auswertung für ${formatPeriodLabel(from, to)} geladen.`)
@@ -187,14 +189,14 @@ function AnalyticsPage() {
         })), [savingsSummary.items])
 
     const incomeItems = useMemo(() => {
-        const source = incomeMode === 'category' ? incomeCategorySummary : incomePersonSummary
+        const source = incomeMode === 'subcategory' ? incomeSubcategorySummary : incomePersonSummary
         return source.map(item => ({
             id: item.id,
             label: item.name,
             amount: item.totalAmount,
             averagePerMonth: item.averagePerMonth
         }))
-    }, [incomeCategorySummary, incomeMode, incomePersonSummary])
+    }, [incomeMode, incomePersonSummary, incomeSubcategorySummary])
 
     function handleSubmit(event) {
         event.preventDefault()
@@ -399,11 +401,11 @@ function AnalyticsPage() {
                         <div className="btn-group btn-group-sm" role="group" aria-label="Einnahmen gruppieren nach">
                             <button
                                 type="button"
-                                className={`btn ${incomeMode === 'category' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                aria-pressed={incomeMode === 'category'}
-                                onClick={() => setIncomeMode('category')}
+                                className={`btn ${incomeMode === 'subcategory' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                aria-pressed={incomeMode === 'subcategory'}
+                                onClick={() => setIncomeMode('subcategory')}
                             >
-                                Kategorien
+                                Subkategorien
                             </button>
                             <button
                                 type="button"
@@ -418,17 +420,17 @@ function AnalyticsPage() {
                     <p className="text-muted mb-4">Zeitraum: {periodLabel}</p>
                     {incomeItems.length === 0 ? (
                         <p className="text-muted mb-0">
-                            {incomeMode === 'category'
+                            {incomeMode === 'subcategory'
                                 ? 'Für den ausgewählten Zeitraum sind keine Einnahmen vorhanden.'
                                 : 'Für den ausgewählten Zeitraum sind keine personenbezogenen Einnahmen vorhanden.'}
                         </p>
                     ) : (
                         <>
                             <AnalyticsDoughnutChart items={incomeItems}
-                                ariaLabel={`Einnahmen nach ${incomeMode === 'category' ? 'Kategorien' : 'Personen'} als Doughnut-Diagramm`} />
+                                ariaLabel={`Einnahmen nach ${incomeMode === 'subcategory' ? 'Subkategorien' : 'Personen'} als Doughnut-Diagramm`} />
                             <AnalyticsAverageCards items={incomeItems}
-                                heading={`Monatlicher Durchschnitt nach ${incomeMode === 'category' ? 'Kategorie' : 'Person'}`}
-                                ariaLabel={`Durchschnittseinnahmen nach ${incomeMode === 'category' ? 'Kategorien' : 'Personen'}`} />
+                                heading={`Monatlicher Durchschnitt nach ${incomeMode === 'subcategory' ? 'Subkategorie' : 'Person'}`}
+                                ariaLabel={`Durchschnittseinnahmen nach ${incomeMode === 'subcategory' ? 'Subkategorien' : 'Personen'}`} />
                         </>
                     )}
                 </div>

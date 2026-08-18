@@ -91,11 +91,11 @@ const savings = {
     totalAmount: 3500
 }
 
-const incomeByCategory = {
-    groupBy: 'category',
+const incomeBySubcategory = {
+    groupBy: 'subcategory',
     items: [
-        { id: 'category-3', name: 'Gehalt', totalAmount: 6600, averagePerMonth: 550 },
-        { id: 'category-4', name: 'Geldgeschenke', totalAmount: 400, averagePerMonth: 33.33 }
+        { id: 'subcategory-3', name: 'Gehalt', totalAmount: 6600, averagePerMonth: 550 },
+        { id: 'subcategory-4', name: 'Geldgeschenke', totalAmount: 400, averagePerMonth: 33.33 }
     ],
     totalAmount: 7000,
     monthCount: 12
@@ -124,7 +124,7 @@ describe('AnalyticsPage', () => {
         getPersonSummary.mockResolvedValue(persons)
         getSavingsSummary.mockResolvedValue(savings)
         getIncomeSummary.mockImplementation((_from, _to, groupBy) => Promise.resolve(
-            groupBy === 'person' ? incomeByPerson : incomeByCategory
+            groupBy === 'person' ? incomeByPerson : incomeBySubcategory
         ))
     })
 
@@ -142,7 +142,7 @@ describe('AnalyticsPage', () => {
             expect(getSubcategorySummary).toHaveBeenCalledWith(`${year}-01-01`, `${year}-12-31`, 'EXPENSE')
             expect(getPersonSummary).toHaveBeenCalledWith(`${year}-01-01`, `${year}-12-31`)
             expect(getSavingsSummary).toHaveBeenCalledWith(`${year}-01-01`, `${year}-12-31`)
-            expect(getIncomeSummary).toHaveBeenCalledWith(`${year}-01-01`, `${year}-12-31`, 'category')
+            expect(getIncomeSummary).toHaveBeenCalledWith(`${year}-01-01`, `${year}-12-31`, 'subcategory')
             expect(getIncomeSummary).toHaveBeenCalledWith(`${year}-01-01`, `${year}-12-31`, 'person')
         })
     })
@@ -160,7 +160,7 @@ describe('AnalyticsPage', () => {
             expect(getSubcategorySummary).toHaveBeenCalledWith('2025-01-15', '2026-02-20', 'EXPENSE')
             expect(getPersonSummary).toHaveBeenCalledWith('2025-01-15', '2026-02-20')
             expect(getSavingsSummary).toHaveBeenCalledWith('2025-01-15', '2026-02-20')
-            expect(getIncomeSummary).toHaveBeenCalledWith('2025-01-15', '2026-02-20', 'category')
+            expect(getIncomeSummary).toHaveBeenCalledWith('2025-01-15', '2026-02-20', 'subcategory')
             expect(getIncomeSummary).toHaveBeenCalledWith('2025-01-15', '2026-02-20', 'person')
         })
         expect(screen.getByText(/Übersicht 15\. Januar 2025 – 20\. Februar 2026/)).toBeInTheDocument()
@@ -197,29 +197,33 @@ describe('AnalyticsPage', () => {
             .getByText('Ø 100,00 € / Monat')).toBeInTheDocument()
     })
 
-    it('shows one income doughnut and switches categories, persons and their averages together', async () => {
+    it('shows one income doughnut and switches subcategories, persons and their averages together', async () => {
         render(<AnalyticsPage />)
 
         expect(await screen.findByRole('link', { name: 'Einnahmen' })).toHaveAttribute('href', '#income-summary')
-        const categoryButton = screen.getByRole('button', { name: 'Kategorien' })
+        const subcategoryButton = screen.getByRole('button', { name: 'Subkategorien' })
         const personButton = screen.getByRole('button', { name: 'Personen' })
 
-        expect(categoryButton).toHaveAttribute('aria-pressed', 'true')
+        expect(subcategoryButton).toHaveAttribute('aria-pressed', 'true')
         expect(personButton).toHaveAttribute('aria-pressed', 'false')
         expect(screen.getAllByRole('img', { name: /Einnahmen nach .* als Doughnut-Diagramm/ })).toHaveLength(1)
-        expect(screen.getByRole('img', { name: 'Einnahmen nach Kategorien als Doughnut-Diagramm' }))
+        expect(screen.getByRole('img', { name: 'Einnahmen nach Subkategorien als Doughnut-Diagramm' }))
             .toBeInTheDocument()
-        expect(screen.getByLabelText('Einnahmen nach Kategorien als Doughnut-Diagramm – Gesamt'))
+        expect(within(screen.getByLabelText(
+            'Einnahmen nach Subkategorien als Doughnut-Diagramm – Legendeneinträge'
+        )).getAllByRole('listitem')).toHaveLength(2)
+        expect(screen.getByLabelText('Einnahmen nach Subkategorien als Doughnut-Diagramm – Gesamt'))
             .toHaveTextContent(/7\.000,00/)
-        expect(within(screen.getByLabelText('Durchschnittseinnahmen nach Kategorien'))
+        expect(within(screen.getByLabelText('Durchschnittseinnahmen nach Subkategorien'))
             .getByText('Ø 550,00 € / Monat')).toBeInTheDocument()
+        expect(screen.getAllByText('Gehalt')).toHaveLength(2)
         expect(screen.getAllByText('Geldgeschenke')).toHaveLength(2)
 
         fireEvent.click(personButton)
 
         expect(personButton).toHaveAttribute('aria-pressed', 'true')
-        expect(categoryButton).toHaveAttribute('aria-pressed', 'false')
-        expect(screen.queryByRole('img', { name: 'Einnahmen nach Kategorien als Doughnut-Diagramm' }))
+        expect(subcategoryButton).toHaveAttribute('aria-pressed', 'false')
+        expect(screen.queryByRole('img', { name: 'Einnahmen nach Subkategorien als Doughnut-Diagramm' }))
             .not.toBeInTheDocument()
         expect(screen.getByRole('img', { name: 'Einnahmen nach Personen als Doughnut-Diagramm' }))
             .toBeInTheDocument()
@@ -229,10 +233,10 @@ describe('AnalyticsPage', () => {
         expect(within(screen.getByLabelText('Durchschnittseinnahmen nach Personen'))
             .getByText('Ø 33,33 € / Monat')).toBeInTheDocument()
 
-        fireEvent.click(categoryButton)
+        fireEvent.click(subcategoryButton)
 
-        expect(categoryButton).toHaveAttribute('aria-pressed', 'true')
-        expect(screen.getByRole('img', { name: 'Einnahmen nach Kategorien als Doughnut-Diagramm' }))
+        expect(subcategoryButton).toHaveAttribute('aria-pressed', 'true')
+        expect(screen.getByRole('img', { name: 'Einnahmen nach Subkategorien als Doughnut-Diagramm' }))
             .toBeInTheDocument()
         expect(screen.queryByText('Ohne Person')).not.toBeInTheDocument()
     })
@@ -257,18 +261,18 @@ describe('AnalyticsPage', () => {
 
     it('scrolls only the income average card area when more than nine groups exist', async () => {
         const manyIncomeItems = Array.from({ length: 10 }, (_, index) => ({
-            id: `category-${index}`,
+            id: `subcategory-${index}`,
             name: `Einnahme ${index + 1}`,
             totalAmount: 1200,
             averagePerMonth: 100
         }))
         getIncomeSummary.mockImplementation((_from, _to, groupBy) => Promise.resolve(
-            groupBy === 'person' ? incomeByPerson : { ...incomeByCategory, items: manyIncomeItems }
+            groupBy === 'person' ? incomeByPerson : { ...incomeBySubcategory, items: manyIncomeItems }
         ))
 
         render(<AnalyticsPage />)
 
-        const averageArea = await screen.findByLabelText('Durchschnittseinnahmen nach Kategorien')
+        const averageArea = await screen.findByLabelText('Durchschnittseinnahmen nach Subkategorien')
         expect(averageArea).toHaveClass('analytics-average-items--scrollable')
         expect(averageArea).toHaveAttribute('data-scrollable', 'true')
         expect(within(averageArea).getAllByText('Ø 100,00 € / Monat')).toHaveLength(10)
