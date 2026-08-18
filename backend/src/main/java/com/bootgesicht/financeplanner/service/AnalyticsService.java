@@ -127,17 +127,17 @@ public class AnalyticsService {
 
     public IncomeSummaryResponse getIncomeSummary(LocalDate from, LocalDate to, String groupBy) {
         validateDateRange(from, to);
-        String normalizedGroupBy = groupBy == null ? "category" : groupBy.toLowerCase(Locale.ROOT);
+        String normalizedGroupBy = groupBy == null ? "subcategory" : groupBy.toLowerCase(Locale.ROOT);
         long monthCount = getTouchedMonthCount(from, to);
         List<IncomeSegmentResponse> items;
 
-        if ("category".equals(normalizedGroupBy)) {
-            items = analyticsRepository.getCategorySummary(from, to, "INCOME").stream()
-                    .map(category -> new IncomeSegmentResponse(
-                            "category-" + category.getCategoryId(),
-                            category.getCategoryName(),
-                            category.getTotalAmount(),
-                            calculateAverage(category.getTotalAmount(), monthCount)))
+        if ("subcategory".equals(normalizedGroupBy)) {
+            items = analyticsRepository.getSubcategorySummary(from, to, null, "INCOME").stream()
+                    .map(subcategory -> new IncomeSegmentResponse(
+                            "subcategory-" + subcategory.getSubcategoryId(),
+                            subcategory.getSubcategoryName(),
+                            subcategory.getTotalAmount(),
+                            calculateAverage(subcategory.getTotalAmount(), monthCount)))
                     .toList();
         } else if ("person".equals(normalizedGroupBy)) {
             items = analyticsRepository.getIncomePersonSummary(from, to).stream()
@@ -148,7 +148,7 @@ public class AnalyticsService {
                             calculateAverage(person.getTotalAmount(), monthCount)))
                     .toList();
         } else {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'groupBy' must be 'category' or 'person'");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'groupBy' must be 'subcategory' or 'person'");
         }
 
         double totalAmount = roundCurrency(items.stream()

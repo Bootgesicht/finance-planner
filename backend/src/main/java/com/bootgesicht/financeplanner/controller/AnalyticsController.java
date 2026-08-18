@@ -77,7 +77,7 @@ public class AnalyticsController {
     public IncomeSummaryResponse getIncomeSummary(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(defaultValue = "category") String groupBy) {
+            @RequestParam(defaultValue = "subcategory") String groupBy) {
         return analyticsService.getIncomeSummary(from, to, groupBy);
     }
 }

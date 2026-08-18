@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.bootgesicht.financeplanner.dto.AnalyticsOverviewResponse;
-import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
 import com.bootgesicht.financeplanner.dto.PersonSummaryResponse;
 import com.bootgesicht.financeplanner.dto.SubcategorySummaryResponse;
@@ -52,14 +51,13 @@ class AnalyticsRepositoryTest {
             statement.executeUpdate("INSERT INTO categories VALUES (2, 'Wohnen', 'EXPENSE')");
             statement.executeUpdate("INSERT INTO categories VALUES (3, 'Investieren', 'SAVING')");
             statement.executeUpdate("INSERT INTO categories VALUES (4, 'Freizeit', 'EXPENSE')");
-            statement.executeUpdate("INSERT INTO categories VALUES (5, 'Geldgeschenke', 'INCOME')");
             statement.executeUpdate("INSERT INTO subcategories VALUES (1, 1, 'Gehalt')");
             statement.executeUpdate("INSERT INTO subcategories VALUES (2, 2, 'Miete')");
             statement.executeUpdate("INSERT INTO subcategories VALUES (3, 3, 'ETF-Sparen')");
             statement.executeUpdate("INSERT INTO subcategories VALUES (4, 4, 'Hobby')");
             statement.executeUpdate("INSERT INTO subcategories VALUES (5, 3, 'Einzelaktien-Sparen')");
             statement.executeUpdate("INSERT INTO subcategories VALUES (6, 2, 'Strom')");
-            statement.executeUpdate("INSERT INTO subcategories VALUES (7, 5, 'Geschenk')");
+            statement.executeUpdate("INSERT INTO subcategories VALUES (7, 1, 'Geschenk')");
             statement.executeUpdate("INSERT INTO persons VALUES (1, 'Jonas', 'ADULT')");
             statement.executeUpdate("INSERT INTO persons VALUES (2, 'Familie', 'HOUSEHOLD')");
 
@@ -138,18 +136,18 @@ class AnalyticsRepositoryTest {
     }
 
     @Test
-    void groupsOnlyIncomeByCategoryAndKeepsTheOverviewTotal() {
+    void groupsOnlyIncomeBySubcategoryAndKeepsTheOverviewTotal() {
         LocalDate from = LocalDate.of(2026, 1, 1);
         LocalDate to = LocalDate.of(2026, 2, 28);
 
-        List<CategorySummaryResponse> income = repository.getCategorySummary(from, to, "INCOME");
+        List<SubcategorySummaryResponse> income = repository.getSubcategorySummary(from, to, null, "INCOME");
         AnalyticsOverviewResponse overview = repository.getOverview(from, to);
 
-        assertThat(income).extracting(CategorySummaryResponse::getCategoryName)
-                .containsExactly("Einkommen", "Geldgeschenke");
-        assertThat(income).extracting(CategorySummaryResponse::getTotalAmount)
+        assertThat(income).extracting(SubcategorySummaryResponse::getSubcategoryName)
+                .containsExactly("Gehalt", "Geschenk");
+        assertThat(income).extracting(SubcategorySummaryResponse::getTotalAmount)
                 .containsExactly(3000.0, 500.0);
-        assertThat(income.stream().mapToDouble(CategorySummaryResponse::getTotalAmount).sum())
+        assertThat(income.stream().mapToDouble(SubcategorySummaryResponse::getTotalAmount).sum())
                 .isEqualTo(overview.getIncome());
     }
 
@@ -170,12 +168,12 @@ class AnalyticsRepositoryTest {
 
     @Test
     void incomeGroupingRespectsPartialAndCrossYearDateRanges() {
-        List<CategorySummaryResponse> crossYear = repository.getCategorySummary(
-                LocalDate.of(2025, 12, 31), LocalDate.of(2026, 1, 30), "INCOME");
+        List<SubcategorySummaryResponse> crossYear = repository.getSubcategorySummary(
+                LocalDate.of(2025, 12, 31), LocalDate.of(2026, 1, 30), null, "INCOME");
         List<PersonSummaryResponse> partialMonth = repository.getIncomePersonSummary(
                 LocalDate.of(2026, 1, 16), LocalDate.of(2026, 2, 10));
 
-        assertThat(crossYear.stream().mapToDouble(CategorySummaryResponse::getTotalAmount).sum())
+        assertThat(crossYear.stream().mapToDouble(SubcategorySummaryResponse::getTotalAmount).sum())
                 .isEqualTo(4100);
         assertThat(partialMonth).singleElement().satisfies(person -> {
             assertThat(person.getPersonName()).isEqualTo("Familie");
@@ -196,7 +194,7 @@ class AnalyticsRepositoryTest {
         assertThat(repository.getMonthlyBalance(from, to)).isEmpty();
         assertThat(repository.getSubcategorySummary(from, to, null, "EXPENSE")).isEmpty();
         assertThat(repository.getPersonSummary(from, to)).isEmpty();
-        assertThat(repository.getCategorySummary(from, to, "INCOME")).isEmpty();
+        assertThat(repository.getSubcategorySummary(from, to, null, "INCOME")).isEmpty();
         assertThat(repository.getIncomePersonSummary(from, to)).isEmpty();
     }
 

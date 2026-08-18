@@ -102,6 +102,26 @@ class AnalyticsControllerTest {
     }
 
     @Test
+    void incomeSummaryDefaultsToSubcategoryGrouping() throws Exception {
+        LocalDate from = LocalDate.of(2026, 1, 1);
+        LocalDate to = LocalDate.of(2026, 1, 31);
+        when(service.getIncomeSummary(from, to, "subcategory")).thenReturn(new IncomeSummaryResponse(
+                "subcategory",
+                List.of(new IncomeSegmentResponse("subcategory-1", "Gehalt", 3000, 3000)),
+                3000,
+                1));
+
+        mockMvc.perform(get("/analytics/income-summary")
+                .param("from", "2026-01-01")
+                .param("to", "2026-01-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groupBy").value("subcategory"))
+                .andExpect(jsonPath("$.items[0].name").value("Gehalt"));
+
+        verify(service).getIncomeSummary(from, to, "subcategory");
+    }
+
+    @Test
     void analyticsEndpointsRequireBothDates() throws Exception {
         mockMvc.perform(get("/analytics/subcategory-summary").param("from", "2026-01-01"))
                 .andExpect(status().isBadRequest());

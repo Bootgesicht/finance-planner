@@ -47,7 +47,7 @@ class AnalyticsServiceTest {
         service.getCategorySummary(from, to, "EXPENSE");
         service.getSubcategorySummary(from, to, 4, "EXPENSE");
         service.getPersonSummary(from, to);
-        service.getIncomeSummary(from, to, "category");
+        service.getIncomeSummary(from, to, "subcategory");
         service.getIncomeSummary(from, to, "person");
 
         verify(repository).getOverview(from, to);
@@ -55,7 +55,7 @@ class AnalyticsServiceTest {
         verify(repository).getCategorySummary(from, to, "EXPENSE");
         verify(repository).getSubcategorySummary(from, to, 4, "EXPENSE");
         verify(repository).getPersonSummary(from, to);
-        verify(repository).getCategorySummary(from, to, "INCOME");
+        verify(repository).getSubcategorySummary(from, to, null, "INCOME");
         verify(repository).getIncomePersonSummary(from, to);
     }
 
@@ -151,21 +151,21 @@ class AnalyticsServiceTest {
     }
 
     @Test
-    void groupsIncomeByCategoryAndCalculatesAverages() {
+    void groupsIncomeBySubcategoryAndCalculatesAverages() {
         LocalDate from = LocalDate.of(2026, 1, 15);
         LocalDate to = LocalDate.of(2026, 3, 20);
-        when(repository.getCategorySummary(from, to, "INCOME"))
+        when(repository.getSubcategorySummary(from, to, null, "INCOME"))
                 .thenReturn(List.of(
-                        new CategorySummaryResponse(1, "Einkommen", "INCOME", 6000),
-                        new CategorySummaryResponse(2, "Geldgeschenke", "INCOME", 300)));
+                        new SubcategorySummaryResponse(1, "Gehalt", 1, "Einnahmen", "INCOME", 6000),
+                        new SubcategorySummaryResponse(2, "Geldgeschenke", 1, "Einnahmen", "INCOME", 300)));
 
-        IncomeSummaryResponse result = service.getIncomeSummary(from, to, "category");
+        IncomeSummaryResponse result = service.getIncomeSummary(from, to, "subcategory");
 
-        assertThat(result.getGroupBy()).isEqualTo("category");
+        assertThat(result.getGroupBy()).isEqualTo("subcategory");
         assertThat(result.getMonthCount()).isEqualTo(3);
         assertThat(result.getTotalAmount()).isEqualTo(6300);
         assertThat(result.getItems()).extracting(item -> item.getName())
-                .containsExactly("Einkommen", "Geldgeschenke");
+                .containsExactly("Gehalt", "Geldgeschenke");
         assertThat(result.getItems()).extracting(item -> item.getAveragePerMonth())
                 .containsExactly(2000.0, 100.0);
     }
@@ -192,7 +192,7 @@ class AnalyticsServiceTest {
     @Test
     void rejectsAnUnsupportedIncomeGrouping() {
         assertThatThrownBy(() -> service.getIncomeSummary(
-                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31), "subcategory"))
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31), "category"))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
                         .isEqualTo(HttpStatus.BAD_REQUEST));

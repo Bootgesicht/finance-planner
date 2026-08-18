@@ -47,7 +47,7 @@ export function getSavingsSummary(from, to) {
     return getAnalyticsResponse('savings-summary', createRangeParams(from, to))
 }
 
-export function getIncomeSummary(from, to, groupBy = 'category') {
+export function getIncomeSummary(from, to, groupBy = 'subcategory') {
     const params = createRangeParams(from, to)
     params.append('groupBy', groupBy)
     return getAnalyticsResponse('income-summary', params)
