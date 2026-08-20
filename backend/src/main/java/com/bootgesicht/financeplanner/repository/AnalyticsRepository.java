@@ -6,13 +6,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Repository;
 
 import com.bootgesicht.financeplanner.dto.AnalyticsOverviewResponse;
 import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
+import com.bootgesicht.financeplanner.dto.MonthlyTrendPointResponse;
+import com.bootgesicht.financeplanner.dto.MonthlyTrendSeriesResponse;
 import com.bootgesicht.financeplanner.dto.PersonSummaryResponse;
 import com.bootgesicht.financeplanner.dto.SubcategorySummaryResponse;
 
@@ -206,6 +210,73 @@ public class AnalyticsRepository {
         return getPersonSummaryByKind(from, to, "INCOME", true);
     }
 
+    public List<MonthlyTrendPointResponse> getMonthlyTotalsByKind(String kind) {
+        List<MonthlyTrendPointResponse> points = new ArrayList<>();
+        String sql = """
+                SELECT strftime('%Y-%m', e.entry_date) AS month,
+                       ROUND(SUM(e.amount), 2) AS total_amount
+                FROM entries e
+                JOIN subcategories s ON e.subcategory_id = s.id
+                JOIN categories c ON s.category_id = c.id
+                WHERE c.kind = ?
+                GROUP BY strftime('%Y-%m', e.entry_date)
+                ORDER BY month
+                """;
+
+        try (Connection connection = databaseConnection.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, kind);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    points.add(new MonthlyTrendPointResponse(
+                            result.getString("month"),
+                            result.getDouble("total_amount")));
+                }
+            }
+        } catch (SQLException error) {
+            throw new IllegalStateException("Monthly trend analytics could not be loaded", error);
+        }
+
+        return points;
+    }
+
+    public List<MonthlyTrendSeriesResponse> getMonthlyIncomeByPerson() {
+        Map<String, MonthlyTrendSeriesResponse> seriesById = new LinkedHashMap<>();
+        String sql = """
+                SELECT e.person_id AS person_id, COALESCE(p.name, 'Ohne Person') AS person_name,
+                       strftime('%Y-%m', e.entry_date) AS month,
+                       ROUND(SUM(e.amount), 2) AS total_amount
+                FROM entries e
+                JOIN subcategories s ON e.subcategory_id = s.id
+                JOIN categories c ON s.category_id = c.id
+                LEFT JOIN persons p ON e.person_id = p.id
+                WHERE c.kind = 'INCOME'
+                GROUP BY e.person_id, p.name, strftime('%Y-%m', e.entry_date)
+                ORDER BY person_name, e.person_id, month
+                """;
+
+        try (Connection connection = databaseConnection.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql);
+                ResultSet result = statement.executeQuery()) {
+            while (result.next()) {
+                String personId = result.getObject("person_id") == null
+                        ? "person-unassigned"
+                        : "person-" + result.getInt("person_id");
+                String personName = result.getString("person_name");
+                MonthlyTrendSeriesResponse series = seriesById.computeIfAbsent(
+                        personId,
+                        id -> new MonthlyTrendSeriesResponse(id, personName, new ArrayList<>()));
+                series.getPoints().add(new MonthlyTrendPointResponse(
+                        result.getString("month"),
+                        result.getDouble("total_amount")));
+            }
+        } catch (SQLException error) {
+            throw new IllegalStateException("Monthly income trends by person could not be loaded", error);
+        }
+
+        return new ArrayList<>(seriesById.values());
+    }
+
     private List<PersonSummaryResponse> getPersonSummaryByKind(
             LocalDate from, LocalDate to, String kind, boolean includeUnassigned) {
         List<PersonSummaryResponse> summaries = new ArrayList<>();
@@ -258,4 +329,5 @@ public class AnalyticsRepository {
             statement.setObject(index + 1, parameters.get(index));
         }
     }
+
 }

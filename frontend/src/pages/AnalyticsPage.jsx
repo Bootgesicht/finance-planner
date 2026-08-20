@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
     getAnalyticsOverview,
     getCategorySummary,
     getIncomeSummary,
+    getLongTermAnalytics,
     getMonthlyBalance,
     getPersonSummary,
     getSavingsSummary,
@@ -10,6 +11,8 @@ import {
 } from '../api/analyticsApi'
 import AnalyticsDoughnutChart from '../components/AnalyticsDoughnutChart'
 import AnalyticsAverageCards from '../components/AnalyticsAverageCards'
+import AnalyticsTrendSection from '../components/AnalyticsTrendSection'
+import './AnalyticsPage.css'
 
 const EMPTY_OVERVIEW = {
     income: 0,
@@ -89,6 +92,7 @@ function BalanceCard({ label, value, color, balance }) {
 }
 
 function AnalyticsPage() {
+    const analyticsPageRef = useRef(null)
     const [initialRange] = useState(getCurrentYearRange)
     const [fromDate, setFromDate] = useState(initialRange.from)
     const [toDate, setToDate] = useState(initialRange.to)
@@ -102,6 +106,10 @@ function AnalyticsPage() {
     const [incomeSubcategorySummary, setIncomeSubcategorySummary] = useState([])
     const [incomePersonSummary, setIncomePersonSummary] = useState([])
     const [incomeMode, setIncomeMode] = useState('subcategory')
+    const [longTermAnalytics, setLongTermAnalytics] = useState(null)
+    const [longTermLoading, setLongTermLoading] = useState(true)
+    const [longTermError, setLongTermError] = useState('')
+    const [showBackToTop, setShowBackToTop] = useState(() => window.scrollY > 600)
     const [errorMessage, setErrorMessage] = useState('')
     const [successMessage, setSuccessMessage] = useState('')
     const [loading, setLoading] = useState(false)
@@ -159,6 +167,35 @@ function AnalyticsPage() {
         loadAnalytics(initialRange.from, initialRange.to)
     }, [initialRange, loadAnalytics])
 
+    useEffect(() => {
+        let isActive = true
+
+        getLongTermAnalytics()
+            .then(data => {
+                if (isActive) setLongTermAnalytics(data)
+            })
+            .catch(error => {
+                console.error('Error loading long-term analytics:', error)
+                if (isActive) setLongTermError('Die langfristige Entwicklung konnte nicht geladen werden.')
+            })
+            .finally(() => {
+                if (isActive) setLongTermLoading(false)
+            })
+
+        return () => {
+            isActive = false
+        }
+    }, [])
+
+    useEffect(() => {
+        function handleScroll() {
+            setShowBackToTop(window.scrollY > 600)
+        }
+
+        window.addEventListener('scroll', handleScroll, { passive: true })
+        return () => window.removeEventListener('scroll', handleScroll)
+    }, [])
+
     const categoryItems = useMemo(() => categorySummary.map(category => ({
         id: `category-${category.categoryId}`,
         label: category.categoryName,
@@ -213,10 +250,14 @@ function AnalyticsPage() {
         setToDate(range.to)
     }
 
+    function scrollToTop() {
+        analyticsPageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+
     const periodLabel = formatPeriodLabel(appliedRange.from, appliedRange.to)
 
     return (
-        <div className="container mt-4 pb-5">
+        <div id="analytics-page-top" className="container mt-4 pb-5" ref={analyticsPageRef}>
             <div className="mb-4">
                 <h1>Analytics</h1>
                 <p className="text-muted mb-0">
@@ -227,16 +268,18 @@ function AnalyticsPage() {
             {errorMessage && <div className="alert alert-danger mt-3" role="alert">{errorMessage}</div>}
             {successMessage && <div className="alert alert-success mt-3" role="status">{successMessage}</div>}
 
-            <div className="card mb-4">
+            <div className="card mb-4 analytics-sticky-navigation">
                 <div className="card-body">
                     <h5 className="card-title mb-3">Analytics-Bereiche</h5>
-                    <nav className="nav nav-pills flex-wrap gap-2">
+                    <nav className="nav nav-pills flex-wrap gap-2 analytics-navigation">
                         <a className="nav-link active" href="#monthly-balance">Monats-Saldo</a>
                         <a className="nav-link" href="#category-summary">Kategorien</a>
                         <a className="nav-link" href="#subcategory-summary">Subkategorien</a>
                         <a className="nav-link" href="#person-summary">Personen</a>
                         <a className="nav-link" href="#savings-summary">Sparen</a>
                         <a className="nav-link" href="#income-summary">Einnahmen</a>
+                        <a className="nav-link" href="#long-term-income">Langzeit-Einnahmen</a>
+                        <a className="nav-link" href="#long-term-expenses">Langzeit-Ausgaben</a>
                         <a className="nav-link" href="#year-comparison">Jahresvergleich</a>
                     </nav>
                 </div>
@@ -283,7 +326,7 @@ function AnalyticsPage() {
                 </div>
             </section>
 
-            <section id="monthly-balance" className="card mt-4">
+            <section id="monthly-balance" className="card mt-4 analytics-section">
                 <div className="card-body">
                     <h5 className="card-title mb-3">Monats-Saldo</h5>
                     {monthlyBalance.length === 0 ? (
@@ -316,7 +359,7 @@ function AnalyticsPage() {
                 </div>
             </section>
 
-            <section id="category-summary" className="card mt-4">
+            <section id="category-summary" className="card mt-4 analytics-section">
                 <div className="card-body">
                     <h5 className="card-title mb-2">Ausgaben nach Kategorien</h5>
                     <p className="text-muted mb-4">Zeitraum: {periodLabel}</p>
@@ -334,7 +377,7 @@ function AnalyticsPage() {
                 </div>
             </section>
 
-            <section id="subcategory-summary" className="card mt-4">
+            <section id="subcategory-summary" className="card mt-4 analytics-section">
                 <div className="card-body">
                     <h5 className="card-title mb-2">Ausgaben nach Subkategorien</h5>
                     <p className="text-muted mb-4">Zeitraum: {periodLabel}</p>
@@ -354,7 +397,7 @@ function AnalyticsPage() {
                 </div>
             </section>
 
-            <section id="person-summary" className="card mt-4">
+            <section id="person-summary" className="card mt-4 analytics-section">
                 <div className="card-body">
                     <h5 className="card-title mb-2">Ausgaben nach Personen</h5>
                     <p className="text-muted mb-4">Zeitraum: {periodLabel}</p>
@@ -374,7 +417,7 @@ function AnalyticsPage() {
                 </div>
             </section>
 
-            <section id="savings-summary" className="card mt-4">
+            <section id="savings-summary" className="card mt-4 analytics-section">
                 <div className="card-body">
                     <h5 className="card-title mb-2">Sparen &amp; Investieren</h5>
                     <p className="text-muted mb-4">Zeitraum: {periodLabel}</p>
@@ -394,7 +437,7 @@ function AnalyticsPage() {
                 </div>
             </section>
 
-            <section id="income-summary" className="card mt-4">
+            <section id="income-summary" className="card mt-4 analytics-section">
                 <div className="card-body">
                     <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-2">
                         <h5 className="card-title mb-0">Einnahmen</h5>
@@ -436,12 +479,36 @@ function AnalyticsPage() {
                 </div>
             </section>
 
-            <section id="year-comparison" className="card mt-4">
+            <AnalyticsTrendSection
+                id="long-term-income"
+                title="Langfristige Einnahmenentwicklung"
+                trend={longTermAnalytics?.income}
+                allowPersonMode
+                loading={longTermLoading}
+                errorMessage={longTermError}
+            />
+
+            <AnalyticsTrendSection
+                id="long-term-expenses"
+                title="Langfristige Ausgabenentwicklung"
+                trend={longTermAnalytics?.expenses}
+                loading={longTermLoading}
+                errorMessage={longTermError}
+            />
+
+            <section id="year-comparison" className="card mt-4 analytics-section">
                 <div className="card-body">
                     <h5 className="card-title mb-2">Jahresvergleich</h5>
                     <p className="text-muted mb-0">Vergleich von Monaten über mehrere Jahre.</p>
                 </div>
             </section>
+
+            {showBackToTop && (
+                <button type="button" className="btn btn-primary shadow analytics-back-to-top"
+                    onClick={scrollToTop}>
+                    ↑ Zurück nach oben
+                </button>
+            )}
         </div>
     )
 }

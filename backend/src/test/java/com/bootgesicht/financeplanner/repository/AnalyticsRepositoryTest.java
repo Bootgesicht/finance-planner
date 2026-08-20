@@ -16,6 +16,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.bootgesicht.financeplanner.dto.AnalyticsOverviewResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
+import com.bootgesicht.financeplanner.dto.MonthlyTrendPointResponse;
+import com.bootgesicht.financeplanner.dto.MonthlyTrendSeriesResponse;
 import com.bootgesicht.financeplanner.dto.PersonSummaryResponse;
 import com.bootgesicht.financeplanner.dto.SubcategorySummaryResponse;
 
@@ -196,6 +198,44 @@ class AnalyticsRepositoryTest {
         assertThat(repository.getPersonSummary(from, to)).isEmpty();
         assertThat(repository.getSubcategorySummary(from, to, null, "INCOME")).isEmpty();
         assertThat(repository.getIncomePersonSummary(from, to)).isEmpty();
+    }
+
+    @Test
+    void aggregatesOnlyTheRequestedKindForLongTermMonthlyTrends() {
+        List<MonthlyTrendPointResponse> income = repository.getMonthlyTotalsByKind("INCOME");
+        List<MonthlyTrendPointResponse> expenses = repository.getMonthlyTotalsByKind("EXPENSE");
+
+        assertThat(income).extracting(MonthlyTrendPointResponse::getMonth)
+                .containsExactly("2025-12", "2026-01", "2026-02", "2026-03", "2027-01");
+        assertThat(income).extracting(MonthlyTrendPointResponse::getAmount)
+                .containsExactly(1000.0, 3100.0, 400.0, 500.0, 999.0);
+        assertThat(expenses).extracting(MonthlyTrendPointResponse::getMonth)
+                .containsExactly("2026-01", "2026-02");
+        assertThat(expenses).extracting(MonthlyTrendPointResponse::getAmount)
+                .containsExactly(1300.0, 1200.0);
+    }
+
+    @Test
+    void keepsIncomePersonSeriesSparseAndPreservesUnassignedIncome() {
+        List<MonthlyTrendSeriesResponse> series = repository.getMonthlyIncomeByPerson();
+
+        assertThat(series).extracting(MonthlyTrendSeriesResponse::getName)
+                .containsExactly("Familie", "Jonas", "Ohne Person");
+
+        MonthlyTrendSeriesResponse family = series.get(0);
+        assertThat(family.getPoints()).singleElement().satisfies(point -> {
+            assertThat(point.getMonth()).isEqualTo("2026-01");
+            assertThat(point.getAmount()).isEqualTo(100);
+        });
+
+        MonthlyTrendSeriesResponse jonas = series.get(1);
+        assertThat(jonas.getPoints()).extracting(MonthlyTrendPointResponse::getMonth)
+                .containsExactly("2025-12", "2026-01", "2026-03", "2027-01");
+
+        MonthlyTrendSeriesResponse unassigned = series.get(2);
+        assertThat(unassigned.getId()).isEqualTo("person-unassigned");
+        assertThat(unassigned.getPoints()).extracting(MonthlyTrendPointResponse::getAmount)
+                .containsExactly(400.0);
     }
 
     private void insertEntry(Statement statement, int id, String date, double amount,

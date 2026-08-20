@@ -5,6 +5,7 @@ import {
     getAnalyticsOverview,
     getCategorySummary,
     getIncomeSummary,
+    getLongTermAnalytics,
     getMonthlyBalance,
     getPersonSummary,
     getSavingsSummary,
@@ -16,6 +17,7 @@ vi.mock('../api/analyticsApi', () => ({
     getAnalyticsOverview: vi.fn(),
     getCategorySummary: vi.fn(),
     getIncomeSummary: vi.fn(),
+    getLongTermAnalytics: vi.fn(),
     getMonthlyBalance: vi.fn(),
     getPersonSummary: vi.fn(),
     getSavingsSummary: vi.fn(),
@@ -111,6 +113,37 @@ const incomeByPerson = {
     monthCount: 12
 }
 
+const longTermAnalytics = {
+    income: {
+        firstMonth: '2012-03',
+        lastMonth: '2026-03',
+        total: [
+            { month: '2012-03', amount: 438 },
+            { month: '2026-01', amount: 7000 },
+            { month: '2026-03', amount: 7600 }
+        ],
+        persons: [
+            {
+                id: 'person-1', name: 'Jonas',
+                points: [{ month: '2012-03', amount: 438 }, { month: '2026-03', amount: 4000 }]
+            },
+            {
+                id: 'person-2', name: 'Annina',
+                points: [{ month: '2026-01', amount: 3200 }]
+            }
+        ]
+    },
+    expenses: {
+        firstMonth: '2026-01',
+        lastMonth: '2026-02',
+        total: [
+            { month: '2026-01', amount: 3500 },
+            { month: '2026-02', amount: 3700 }
+        ],
+        persons: []
+    }
+}
+
 describe('AnalyticsPage', () => {
     beforeEach(() => {
         vi.clearAllMocks()
@@ -126,6 +159,8 @@ describe('AnalyticsPage', () => {
         getIncomeSummary.mockImplementation((_from, _to, groupBy) => Promise.resolve(
             groupBy === 'person' ? incomeByPerson : incomeBySubcategory
         ))
+        getLongTermAnalytics.mockResolvedValue(longTermAnalytics)
+        Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true })
     })
 
     it('loads every analysis with the current calendar year by default', async () => {
@@ -144,12 +179,13 @@ describe('AnalyticsPage', () => {
             expect(getSavingsSummary).toHaveBeenCalledWith(`${year}-01-01`, `${year}-12-31`)
             expect(getIncomeSummary).toHaveBeenCalledWith(`${year}-01-01`, `${year}-12-31`, 'subcategory')
             expect(getIncomeSummary).toHaveBeenCalledWith(`${year}-01-01`, `${year}-12-31`, 'person')
+            expect(getLongTermAnalytics).toHaveBeenCalled()
         })
     })
 
     it('reloads all existing and new analytics with an edited multi-year range', async () => {
         render(<AnalyticsPage />)
-        await screen.findByRole('status')
+        await screen.findByText(/Auswertung für/)
         vi.clearAllMocks()
 
         fireEvent.change(screen.getByLabelText('Von-Datum'), { target: { value: '2025-01-15' } })
@@ -163,7 +199,53 @@ describe('AnalyticsPage', () => {
             expect(getIncomeSummary).toHaveBeenCalledWith('2025-01-15', '2026-02-20', 'subcategory')
             expect(getIncomeSummary).toHaveBeenCalledWith('2025-01-15', '2026-02-20', 'person')
         })
+        expect(getLongTermAnalytics).not.toHaveBeenCalled()
         expect(screen.getByText(/Übersicht 15\. Januar 2025 – 20\. Februar 2026/)).toBeInTheDocument()
+    })
+
+    it('renders both independent long-term charts and switches income to person lines', async () => {
+        render(<AnalyticsPage />)
+
+        const incomeHeading = await screen.findByText('Langfristige Einnahmenentwicklung')
+        const incomeSection = incomeHeading.closest('section')
+        const expenseSection = screen.getByText('Langfristige Ausgabenentwicklung').closest('section')
+
+        expect(within(incomeSection).getByRole('button', { name: '3J' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(incomeSection).getByRole('img', {
+            name: 'Langfristige Einnahmenentwicklung gesamt als Liniendiagramm'
+        })).toBeInTheDocument()
+        expect(within(expenseSection).getByRole('img', {
+            name: 'Langfristige Ausgabenentwicklung gesamt als Liniendiagramm'
+        })).toBeInTheDocument()
+
+        fireEvent.click(within(incomeSection).getByRole('button', { name: 'MAX' }))
+        fireEvent.click(within(incomeSection).getByRole('button', { name: 'Personen' }))
+
+        expect(within(incomeSection).getByRole('button', { name: 'MAX' })).toHaveAttribute('aria-pressed', 'true')
+        expect(within(incomeSection).getByRole('img', {
+            name: 'Langfristige Einnahmenentwicklung nach Personen als Liniendiagramm'
+        })).toBeInTheDocument()
+    })
+
+    it('provides sticky trend navigation and a scroll-aware back-to-top button', async () => {
+        render(<AnalyticsPage />)
+        await screen.findByText('Langfristige Einnahmenentwicklung')
+
+        const navigationCard = screen.getByText('Analytics-Bereiche').closest('.card')
+        expect(navigationCard).toHaveClass('analytics-sticky-navigation')
+        expect(screen.getByRole('link', { name: 'Langzeit-Einnahmen' }))
+            .toHaveAttribute('href', '#long-term-income')
+        expect(screen.getByRole('link', { name: 'Langzeit-Ausgaben' }))
+            .toHaveAttribute('href', '#long-term-expenses')
+        expect(screen.queryByRole('button', { name: '↑ Zurück nach oben' })).not.toBeInTheDocument()
+
+        window.scrollY = 700
+        fireEvent.scroll(window)
+
+        const pageTop = document.getElementById('analytics-page-top')
+        pageTop.scrollIntoView = vi.fn()
+        fireEvent.click(screen.getByRole('button', { name: '↑ Zurück nach oben' }))
+        expect(pageTop.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
     })
 
     it('renders all doughnuts, unique subcategory names, averages and free surplus', async () => {
@@ -201,8 +283,9 @@ describe('AnalyticsPage', () => {
         render(<AnalyticsPage />)
 
         expect(await screen.findByRole('link', { name: 'Einnahmen' })).toHaveAttribute('href', '#income-summary')
-        const subcategoryButton = screen.getByRole('button', { name: 'Subkategorien' })
-        const personButton = screen.getByRole('button', { name: 'Personen' })
+        const incomeSummarySection = document.getElementById('income-summary')
+        const subcategoryButton = within(incomeSummarySection).getByRole('button', { name: 'Subkategorien' })
+        const personButton = within(incomeSummarySection).getByRole('button', { name: 'Personen' })
 
         expect(subcategoryButton).toHaveAttribute('aria-pressed', 'true')
         expect(personButton).toHaveAttribute('aria-pressed', 'false')
@@ -301,9 +384,13 @@ describe('AnalyticsPage', () => {
         getPersonSummary.mockResolvedValue([])
         getSavingsSummary.mockResolvedValue(EMPTY_SAVINGS_FIXTURE)
         getIncomeSummary.mockResolvedValue({ items: [], totalAmount: 0, monthCount: 12 })
+        getLongTermAnalytics.mockResolvedValue({
+            income: { total: [], persons: [] },
+            expenses: { total: [], persons: [] }
+        })
 
         render(<AnalyticsPage />)
-        await screen.findByRole('status')
+        await screen.findByText(/Auswertung für/)
 
         expect(screen.getByText('Für den ausgewählten Zeitraum sind keine Ausgaben vorhanden.')).toBeInTheDocument()
         expect(screen.getByText('Für den ausgewählten Zeitraum sind keine Ausgaben nach Subkategorien vorhanden.'))
@@ -314,9 +401,11 @@ describe('AnalyticsPage', () => {
             .toBeInTheDocument()
         expect(screen.getByText('Für den ausgewählten Zeitraum sind keine Einnahmen vorhanden.'))
             .toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Personen' }))
+        fireEvent.click(within(document.getElementById('income-summary')).getByRole('button', { name: 'Personen' }))
         expect(screen.getByText('Für den ausgewählten Zeitraum sind keine personenbezogenen Einnahmen vorhanden.'))
             .toBeInTheDocument()
+        expect(await screen.findAllByText('Für diese Ansicht sind noch keine langfristigen Monatsdaten vorhanden.'))
+            .toHaveLength(2)
         expect(screen.queryByRole('img')).not.toBeInTheDocument()
     })
 })

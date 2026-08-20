@@ -52,3 +52,7 @@ export function getIncomeSummary(from, to, groupBy = 'subcategory') {
     params.append('groupBy', groupBy)
     return getAnalyticsResponse('income-summary', params)
 }
+
+export function getLongTermAnalytics() {
+    return getAnalyticsResponse('long-term-trends', new URLSearchParams())
+}

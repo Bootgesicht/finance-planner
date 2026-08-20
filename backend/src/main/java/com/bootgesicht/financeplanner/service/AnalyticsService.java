@@ -15,7 +15,11 @@ import com.bootgesicht.financeplanner.dto.AnalyticsOverviewResponse;
 import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
 import com.bootgesicht.financeplanner.dto.IncomeSegmentResponse;
 import com.bootgesicht.financeplanner.dto.IncomeSummaryResponse;
+import com.bootgesicht.financeplanner.dto.LongTermAnalyticsResponse;
+import com.bootgesicht.financeplanner.dto.LongTermTrendResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
+import com.bootgesicht.financeplanner.dto.MonthlyTrendPointResponse;
+import com.bootgesicht.financeplanner.dto.MonthlyTrendSeriesResponse;
 import com.bootgesicht.financeplanner.dto.PersonSummaryResponse;
 import com.bootgesicht.financeplanner.dto.SavingsSegmentResponse;
 import com.bootgesicht.financeplanner.dto.SavingsSummaryResponse;
@@ -157,6 +161,16 @@ public class AnalyticsService {
         return new IncomeSummaryResponse(normalizedGroupBy, items, totalAmount, monthCount);
     }
 
+    public LongTermAnalyticsResponse getLongTermAnalytics() {
+        List<MonthlyTrendPointResponse> income = analyticsRepository.getMonthlyTotalsByKind("INCOME");
+        List<MonthlyTrendPointResponse> expenses = analyticsRepository.getMonthlyTotalsByKind("EXPENSE");
+        List<MonthlyTrendSeriesResponse> incomeByPerson = analyticsRepository.getMonthlyIncomeByPerson();
+
+        return new LongTermAnalyticsResponse(
+                createLongTermTrend(income, incomeByPerson),
+                createLongTermTrend(expenses, List.of()));
+    }
+
     long getTouchedMonthCount(LocalDate from, LocalDate to) {
         validateDateRange(from, to);
         return ChronoUnit.MONTHS.between(YearMonth.from(from), YearMonth.from(to)) + 1;
@@ -183,5 +197,13 @@ public class AnalyticsService {
                 person.getTotalAmount(),
                 calculateAverage(person.getTotalAmount(), monthCount),
                 monthCount);
+    }
+
+    private LongTermTrendResponse createLongTermTrend(
+            List<MonthlyTrendPointResponse> total,
+            List<MonthlyTrendSeriesResponse> persons) {
+        String firstMonth = total.isEmpty() ? null : total.get(0).getMonth();
+        String lastMonth = total.isEmpty() ? null : total.get(total.size() - 1).getMonth();
+        return new LongTermTrendResponse(firstMonth, lastMonth, total, persons);
     }
 }
