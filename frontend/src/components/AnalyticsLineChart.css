@@ -1,0 +1,11 @@
+.analytics-line-chart-container {
+    height: 24rem;
+    min-width: 0;
+    position: relative;
+}
+
+@media (max-width: 575.98px) {
+    .analytics-line-chart-container {
+        height: 19rem;
+    }
+}

@@ -20,6 +20,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.bootgesicht.financeplanner.dto.PersonSummaryResponse;
 import com.bootgesicht.financeplanner.dto.IncomeSegmentResponse;
 import com.bootgesicht.financeplanner.dto.IncomeSummaryResponse;
+import com.bootgesicht.financeplanner.dto.LongTermAnalyticsResponse;
+import com.bootgesicht.financeplanner.dto.LongTermTrendResponse;
+import com.bootgesicht.financeplanner.dto.MonthlyTrendPointResponse;
+import com.bootgesicht.financeplanner.dto.MonthlyTrendSeriesResponse;
 import com.bootgesicht.financeplanner.dto.SavingsSegmentResponse;
 import com.bootgesicht.financeplanner.dto.SavingsSummaryResponse;
 import com.bootgesicht.financeplanner.service.AnalyticsService;
@@ -119,6 +123,34 @@ class AnalyticsControllerTest {
                 .andExpect(jsonPath("$.items[0].name").value("Gehalt"));
 
         verify(service).getIncomeSummary(from, to, "subcategory");
+    }
+
+    @Test
+    void longTermTrendsDoNotRequireTheNormalAnalyticsDateRange() throws Exception {
+        when(service.getLongTermAnalytics()).thenReturn(new LongTermAnalyticsResponse(
+                new LongTermTrendResponse(
+                        "2012-03",
+                        "2026-01",
+                        List.of(new MonthlyTrendPointResponse("2012-03", 438)),
+                        List.of(new MonthlyTrendSeriesResponse(
+                                "person-1",
+                                "Jonas",
+                                List.of(new MonthlyTrendPointResponse("2012-03", 438))))),
+                new LongTermTrendResponse(
+                        "2026-01",
+                        "2026-01",
+                        List.of(new MonthlyTrendPointResponse("2026-01", 3500)),
+                        List.of())));
+
+        mockMvc.perform(get("/analytics/long-term-trends"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.income.firstMonth").value("2012-03"))
+                .andExpect(jsonPath("$.income.total[0].amount").value(438))
+                .andExpect(jsonPath("$.income.persons[0].name").value("Jonas"))
+                .andExpect(jsonPath("$.expenses.firstMonth").value("2026-01"))
+                .andExpect(jsonPath("$.expenses.total[0].amount").value(3500));
+
+        verify(service).getLongTermAnalytics();
     }
 
     @Test

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.bootgesicht.financeplanner.dto.AnalyticsOverviewResponse;
 import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
 import com.bootgesicht.financeplanner.dto.IncomeSummaryResponse;
+import com.bootgesicht.financeplanner.dto.LongTermAnalyticsResponse;
 import com.bootgesicht.financeplanner.dto.MonthlyBalanceResponse;
 import com.bootgesicht.financeplanner.dto.PersonSummaryResponse;
 import com.bootgesicht.financeplanner.dto.SavingsSummaryResponse;
@@ -79,5 +80,10 @@ public class AnalyticsController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(defaultValue = "subcategory") String groupBy) {
         return analyticsService.getIncomeSummary(from, to, groupBy);
+    }
+
+    @GetMapping("/long-term-trends")
+    public LongTermAnalyticsResponse getLongTermAnalytics() {
+        return analyticsService.getLongTermAnalytics();
     }
 }

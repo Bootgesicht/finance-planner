@@ -23,7 +23,10 @@ import org.springframework.web.server.ResponseStatusException;
 import com.bootgesicht.financeplanner.dto.AnalyticsOverviewResponse;
 import com.bootgesicht.financeplanner.dto.CategorySummaryResponse;
 import com.bootgesicht.financeplanner.dto.IncomeSummaryResponse;
+import com.bootgesicht.financeplanner.dto.LongTermAnalyticsResponse;
 import com.bootgesicht.financeplanner.dto.PersonSummaryResponse;
+import com.bootgesicht.financeplanner.dto.MonthlyTrendPointResponse;
+import com.bootgesicht.financeplanner.dto.MonthlyTrendSeriesResponse;
 import com.bootgesicht.financeplanner.dto.SavingsSummaryResponse;
 import com.bootgesicht.financeplanner.dto.SubcategorySummaryResponse;
 import com.bootgesicht.financeplanner.repository.AnalyticsRepository;
@@ -196,6 +199,32 @@ class AnalyticsServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode())
                         .isEqualTo(HttpStatus.BAD_REQUEST));
+    }
+
+    @Test
+    void buildsIndependentLongTermTrendsWithTheirOwnBoundaries() {
+        List<MonthlyTrendPointResponse> income = List.of(
+                new MonthlyTrendPointResponse("2012-03", 438),
+                new MonthlyTrendPointResponse("2026-01", 7200));
+        List<MonthlyTrendPointResponse> expenses = List.of(
+                new MonthlyTrendPointResponse("2026-01", 3500));
+        List<MonthlyTrendSeriesResponse> persons = List.of(
+                new MonthlyTrendSeriesResponse("person-1", "Jonas", List.of(
+                        new MonthlyTrendPointResponse("2012-03", 438))),
+                new MonthlyTrendSeriesResponse("person-2", "Annina", List.of(
+                        new MonthlyTrendPointResponse("2026-01", 3200))));
+        when(repository.getMonthlyTotalsByKind("INCOME")).thenReturn(income);
+        when(repository.getMonthlyTotalsByKind("EXPENSE")).thenReturn(expenses);
+        when(repository.getMonthlyIncomeByPerson()).thenReturn(persons);
+
+        LongTermAnalyticsResponse result = service.getLongTermAnalytics();
+
+        assertThat(result.getIncome().getFirstMonth()).isEqualTo("2012-03");
+        assertThat(result.getIncome().getLastMonth()).isEqualTo("2026-01");
+        assertThat(result.getIncome().getPersons()).hasSize(2);
+        assertThat(result.getExpenses().getFirstMonth()).isEqualTo("2026-01");
+        assertThat(result.getExpenses().getLastMonth()).isEqualTo("2026-01");
+        assertThat(result.getExpenses().getPersons()).isEmpty();
     }
 
     private static Stream<Arguments> averageRanges() {
