@@ -39,14 +39,22 @@ function EntriesPage() {
                 setErrorMessage('Personen konnten nicht geladen werden.')
             })
 
-        getCategories()
+        getCategories(true)
             .then(data => setCategories(data))
             .catch(error => {
                 console.error('Error loading categories:', error)
                 setErrorMessage('Kategorien konnten nicht geladen werden.')
             })
 
-        handleSearch()
+        searchEntries({})
+            .then(data => {
+                setEntries(data)
+                setSuccessMessage(`${data.length} Einträge gefunden.`)
+            })
+            .catch(error => {
+                console.error('Error loading entries:', error)
+                setErrorMessage('Einträge konnten nicht geladen werden.')
+            })
     }, [])
 
     function handleCategoryChange(event) {
@@ -57,7 +65,7 @@ function EntriesPage() {
         setSubcategories([])
 
         if (selectedCategoryId) {
-            getSubcategoriesByCategoryId(selectedCategoryId)
+            getSubcategoriesByCategoryId(selectedCategoryId, true)
                 .then(data => setSubcategories(data))
                 .catch(error => {
                     console.error('Error loading subcategories:', error)
@@ -111,8 +119,15 @@ function EntriesPage() {
             note: entry.note || ''
         })
 
-        getSubcategoriesByCategoryId(entry.categoryId)
-            .then(data => setEditSubcategories(data))
+        const currentCategory = categories.find(
+            category => String(category.categoryId) === String(entry.categoryId)
+        )
+
+        getSubcategoriesByCategoryId(entry.categoryId, true)
+            .then(data => setEditSubcategories(data.filter(subcategory => (
+                String(subcategory.id) === String(entry.subcategoryId)
+                || (!subcategory.archived && !currentCategory?.archived)
+            ))))
             .catch(error => {
                 console.error('Error loading edit subcategories:', error)
                 setErrorMessage('Subkategorien konnten nicht geladen werden.')
@@ -261,6 +276,18 @@ function EntriesPage() {
         return ''
     }
 
+    function getCategoryLabel(category) {
+        return `${category.categoryName}${category.archived ? ' (archiviert)' : ''}`
+    }
+
+    function getSubcategoryLabel(subcategory, parentCategoryId = categoryId) {
+        const parentCategory = categories.find(
+            category => String(category.categoryId) === String(parentCategoryId)
+        )
+        const archived = subcategory.archived || parentCategory?.archived
+        return `${subcategory.name}${archived ? ' (archiviert)' : ''}`
+    }
+
     function handleDeleteEntry(id) {
         const confirmed = window.confirm('Diesen Eintrag wirklich löschen?')
 
@@ -352,7 +379,7 @@ function EntriesPage() {
 
                                     {categories.map(category => (
                                         <option key={category.categoryId} value={category.categoryId}>
-                                            {category.categoryName}
+                                            {getCategoryLabel(category)}
                                         </option>
                                     ))}
                                 </select>
@@ -370,7 +397,7 @@ function EntriesPage() {
 
                                     {subcategories.map(subcategory => (
                                         <option key={subcategory.id} value={subcategory.id}>
-                                            {subcategory.name}
+                                            {getSubcategoryLabel(subcategory)}
                                         </option>
                                     ))}
                                 </select>
@@ -489,11 +516,16 @@ function EntriesPage() {
                                                             >
                                                                 <option value="">Kategorie</option>
 
-                                                                {categories.map(category => (
+                                                                {categories
+                                                                    .filter(category => (
+                                                                        !category.archived
+                                                                        || String(category.categoryId) === String(editForm.categoryId)
+                                                                    ))
+                                                                    .map(category => (
                                                                     <option key={category.categoryId} value={category.categoryId}>
-                                                                        {category.categoryName}
+                                                                        {getCategoryLabel(category)}
                                                                     </option>
-                                                                ))}
+                                                                    ))}
                                                             </select>
                                                         </td>
 
@@ -508,7 +540,10 @@ function EntriesPage() {
 
                                                                 {editSubcategories.map(subcategory => (
                                                                     <option key={subcategory.id} value={subcategory.id}>
-                                                                        {subcategory.name}
+                                                                        {getSubcategoryLabel(
+                                                                            subcategory,
+                                                                            editForm.categoryId
+                                                                        )}
                                                                     </option>
                                                                 ))}
                                                             </select>

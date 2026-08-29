@@ -1,35 +1,63 @@
 const API_BASE_URL = 'http://localhost:8080'
 
-export async function getSubcategories() {
-    const response = await fetch(`${API_BASE_URL}/subcategories`)
+async function request(path, options) {
+    const response = await fetch(`${API_BASE_URL}${path}`, options)
 
     if (!response.ok) {
-        throw new Error('Failed to fetch subcategories')
+        let message = 'Subkategorie-Aktion fehlgeschlagen.'
+        try {
+            const error = await response.json()
+            message = error.detail || error.message || message
+        } catch {
+            // The fallback is intentionally kept for responses without JSON.
+        }
+        const requestError = new Error(message)
+        requestError.status = response.status
+        throw requestError
     }
 
-    return response.json()
+    const responseText = await response.text()
+    return responseText ? JSON.parse(responseText) : undefined
 }
 
-export async function getSubcategoriesByCategoryId(categoryId) {
-    const response = await fetch(`${API_BASE_URL}/subcategories/category/${categoryId}`)
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch subcategories')
-    }
-
-    return response.json()
+export function getSubcategories(includeArchived = false) {
+    const suffix = includeArchived ? '?includeArchived=true' : ''
+    return request(`/subcategories${suffix}`)
 }
 
-export async function createSubcategory(subcategory) {
-    const response = await fetch(`${API_BASE_URL}/subcategories`, {
+export function getSubcategoriesByCategoryId(categoryId, includeArchived = false) {
+    const suffix = includeArchived ? '?includeArchived=true' : ''
+    return request(`/subcategories/category/${categoryId}${suffix}`)
+}
+
+export function createSubcategory(subcategory) {
+    return request('/subcategories', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(subcategory)
     })
+}
 
-    if (!response.ok) {
-        throw new Error('Failed to create subcategory')
-    }
+export function renameSubcategory(id, name) {
+    return request(`/subcategories/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+    })
+}
+
+export function archiveSubcategory(id) {
+    return request(`/subcategories/${id}/archive`, { method: 'PUT' })
+}
+
+export function reactivateSubcategory(id) {
+    return request(`/subcategories/${id}/reactivate`, { method: 'PUT' })
+}
+
+export function getSubcategoryDeletionImpact(id) {
+    return request(`/subcategories/${id}/deletion-impact`)
+}
+
+export function deleteSubcategory(id) {
+    return request(`/subcategories/${id}`, { method: 'DELETE' })
 }

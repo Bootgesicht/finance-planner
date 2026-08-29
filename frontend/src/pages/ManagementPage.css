@@ -1,0 +1,31 @@
+.management-page .card {
+    border: 0;
+    box-shadow: 0 0.25rem 1rem rgba(33, 37, 41, 0.08);
+}
+
+.management-table th:last-child,
+.management-table td:last-child {
+    min-width: 20rem;
+}
+
+.management-subcategory-table {
+    max-height: 34rem;
+    overflow-y: auto;
+}
+
+.management-subcategory-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.management-page .modal {
+    z-index: 1060;
+}
+
+@media (max-width: 767.98px) {
+    .management-table th:last-child,
+    .management-table td:last-child {
+        min-width: 14rem;
+    }
+}
