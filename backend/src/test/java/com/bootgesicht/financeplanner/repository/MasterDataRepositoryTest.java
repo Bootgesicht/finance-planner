@@ -119,7 +119,7 @@ class MasterDataRepositoryTest {
         assertEquals(1, subcategoryRepository.findById(1).getId());
 
         EntryOverviewResponse entry = entryRepository.searchEntries(
-                null, null, null, null, null, null).get(0);
+                null, null, null, null, null, null, null).get(0);
         assertEquals("Haushalt", entry.getCategoryName());
         assertEquals("Energie", entry.getSubcategoryName());
     }

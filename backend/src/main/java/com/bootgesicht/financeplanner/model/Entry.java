@@ -14,10 +14,21 @@ public class Entry {
     private String note;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Integer createdByUserId;
+    private Integer updatedByUserId;
 
     public Entry(int id, LocalDate date, double amount, String description,
             int subcategoryId, int personId, String note,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
+
+        this(id, date, amount, description, subcategoryId, personId, note,
+                createdAt, updatedAt, null, null);
+    }
+
+    public Entry(int id, LocalDate date, double amount, String description,
+            int subcategoryId, int personId, String note,
+            LocalDateTime createdAt, LocalDateTime updatedAt,
+            Integer createdByUserId, Integer updatedByUserId) {
 
         this.id = id;
         this.date = date;
@@ -28,6 +39,8 @@ public class Entry {
         this.note = note;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.createdByUserId = createdByUserId;
+        this.updatedByUserId = updatedByUserId;
     }
 
     public int getId() {
@@ -64,6 +77,14 @@ public class Entry {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public Integer getCreatedByUserId() {
+        return createdByUserId;
+    }
+
+    public Integer getUpdatedByUserId() {
+        return updatedByUserId;
     }
 
 }

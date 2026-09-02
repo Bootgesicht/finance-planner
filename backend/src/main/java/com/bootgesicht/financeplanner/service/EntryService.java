@@ -46,8 +46,8 @@ public class EntryService {
         return entryRepository.findByDateBetween(entryDateOne, entryDateTwo);
     }
 
-    public List<LatestEntryResponse> getLatestEntries(int limit) {
-        return entryRepository.findLatestEntries(limit);
+    public List<LatestEntryResponse> getLatestEntries(int limit, Integer createdByUserId) {
+        return entryRepository.findLatestEntries(limit, createdByUserId);
     }
 
     public List<EntryOverviewResponse> searchEntries(
@@ -56,7 +56,8 @@ public class EntryService {
             Integer personId,
             Integer categoryId,
             Integer subcategoryId,
-            String description) {
+            String description,
+            Integer createdByUserId) {
 
         return entryRepository.searchEntries(
                 startDate,
@@ -64,10 +65,11 @@ public class EntryService {
                 personId,
                 categoryId,
                 subcategoryId,
-                description);
+                description,
+                createdByUserId);
     }
 
-    public void createEntry(EntryRequest request) {
+    public void createEntry(EntryRequest request, int currentUserId) {
         requireSelectableSubcategory(request.getSubcategoryId());
         Entry entry = new Entry(
                 0,
@@ -78,12 +80,14 @@ public class EntryService {
                 request.getPersonId(),
                 request.getNote(),
                 null,
-                null);
+                null,
+                currentUserId,
+                currentUserId);
 
         entryRepository.save(entry);
     }
 
-    public void updateEntry(int id, EntryRequest request) {
+    public void updateEntry(int id, EntryRequest request, int currentUserId) {
         Entry existingEntry = entryRepository.findById(id);
         if (existingEntry == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Eintrag wurde nicht gefunden.");
@@ -102,7 +106,9 @@ public class EntryService {
                 request.getPersonId(),
                 request.getNote(),
                 null,
-                null);
+                null,
+                existingEntry.getCreatedByUserId(),
+                currentUserId);
 
         entryRepository.updateById(id, entry);
     }

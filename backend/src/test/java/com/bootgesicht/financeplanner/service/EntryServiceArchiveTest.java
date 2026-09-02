@@ -48,7 +48,7 @@ class EntryServiceArchiveTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> service.createEntry(request));
+                () -> service.createEntry(request, 2));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
         verify(entryRepository, never()).save(any());
@@ -61,7 +61,7 @@ class EntryServiceArchiveTest {
         when(entryRepository.findById(4)).thenReturn(existing);
         prepareValidRequest(8);
 
-        service.updateEntry(4, request);
+        service.updateEntry(4, request, 2);
 
         verify(subcategoryRepository, never()).isAvailableForNewEntries(8);
         verify(entryRepository).updateById(org.mockito.ArgumentMatchers.eq(4), any());
@@ -75,7 +75,7 @@ class EntryServiceArchiveTest {
         prepareValidRequest(9);
         when(subcategoryRepository.isAvailableForNewEntries(9)).thenReturn(true);
 
-        service.updateEntry(4, request);
+        service.updateEntry(4, request, 2);
 
         verify(entryRepository).updateById(org.mockito.ArgumentMatchers.eq(4), any());
     }

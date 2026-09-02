@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8080'
+import { apiRequest } from './apiClient'
 
 function createRangeParams(from, to) {
     const params = new URLSearchParams()
@@ -8,13 +8,7 @@ function createRangeParams(from, to) {
 }
 
 async function getAnalyticsResponse(path, params) {
-    const response = await fetch(`${API_BASE_URL}/analytics/${path}?${params.toString()}`)
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch analytics endpoint: ${path}`)
-    }
-
-    return response.json()
+    return apiRequest(`/analytics/${path}?${params.toString()}`)
 }
 
 export function getAnalyticsOverview(from, to) {

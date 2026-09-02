@@ -29,7 +29,8 @@ public class EntryRepository {
         List<Entry> entries = new ArrayList<>();
 
         String sql = """
-                SELECT id, entry_date, amount, description, subcategory_id, person_id, note, created_at, updated_at
+                SELECT id, entry_date, amount, description, subcategory_id, person_id, note,
+                       created_at, updated_at, created_by_user_id, updated_by_user_id
                 FROM entries
                 """;
 
@@ -41,7 +42,7 @@ public class EntryRepository {
                 entries.add(mapRowToEntry(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RepositoryException("Die Einträge konnten nicht geladen werden.", e);
         }
 
         return entries;
@@ -49,7 +50,8 @@ public class EntryRepository {
 
     public Entry findById(int id) {
         String sql = """
-                SELECT id, entry_date, amount, description, subcategory_id, person_id, note, created_at, updated_at
+                SELECT id, entry_date, amount, description, subcategory_id, person_id, note,
+                       created_at, updated_at, created_by_user_id, updated_by_user_id
                 FROM entries
                 WHERE id = ?
                 """;
@@ -65,7 +67,7 @@ public class EntryRepository {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RepositoryException("Der Eintrag konnte nicht geladen werden.", e);
         }
 
         return null;
@@ -75,7 +77,8 @@ public class EntryRepository {
         List<Entry> entries = new ArrayList<>();
 
         String sql = """
-                SELECT id, entry_date, amount, description, subcategory_id, person_id, note, created_at, updated_at
+                SELECT id, entry_date, amount, description, subcategory_id, person_id, note,
+                       created_at, updated_at, created_by_user_id, updated_by_user_id
                 FROM entries
                 WHERE subcategory_id = ?
                 """;
@@ -91,7 +94,7 @@ public class EntryRepository {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RepositoryException("Die Einträge konnten nicht nach Subkategorie geladen werden.", e);
         }
 
         return entries;
@@ -101,7 +104,8 @@ public class EntryRepository {
         List<Entry> entries = new ArrayList<>();
 
         String sql = """
-                SELECT id, entry_date, amount, description, subcategory_id, person_id, note, created_at, updated_at
+                SELECT id, entry_date, amount, description, subcategory_id, person_id, note,
+                       created_at, updated_at, created_by_user_id, updated_by_user_id
                 FROM entries
                 WHERE person_id = ?
                 """;
@@ -117,7 +121,7 @@ public class EntryRepository {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RepositoryException("Die Einträge konnten nicht nach Person geladen werden.", e);
         }
 
         return entries;
@@ -127,7 +131,8 @@ public class EntryRepository {
         List<Entry> entries = new ArrayList<>();
 
         String sql = """
-                SELECT id, entry_date, amount, description, subcategory_id, person_id, note, created_at, updated_at
+                SELECT id, entry_date, amount, description, subcategory_id, person_id, note,
+                       created_at, updated_at, created_by_user_id, updated_by_user_id
                 FROM entries
                 WHERE entry_date BETWEEN ? AND ?
                 """;
@@ -144,13 +149,13 @@ public class EntryRepository {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RepositoryException("Die Einträge konnten nicht nach Zeitraum geladen werden.", e);
         }
 
         return entries;
     }
 
-    public List<LatestEntryResponse> findLatestEntries(int limit) {
+    public List<LatestEntryResponse> findLatestEntries(int limit, Integer createdByUserId) {
         List<LatestEntryResponse> latestEntries = new ArrayList<>();
 
         String sql = """
@@ -162,11 +167,15 @@ public class EntryRepository {
                     p.name AS person_name,
                     c.name AS category_name,
                     c.kind AS category_kind,
-                    s.name AS subcategory_name
+                    s.name AS subcategory_name,
+                    e.created_by_user_id,
+                    creator.display_name AS created_by_display_name
                 FROM entries e
                 LEFT JOIN persons p ON e.person_id = p.id
                 JOIN subcategories s ON e.subcategory_id = s.id
                 JOIN categories c ON s.category_id = c.id
+                LEFT JOIN users creator ON e.created_by_user_id = creator.id
+                WHERE (? IS NULL OR e.created_by_user_id = ?)
                 ORDER BY e.entry_date DESC, e.id DESC
                 LIMIT ?
                 """;
@@ -174,7 +183,14 @@ public class EntryRepository {
         try (
                 Connection conn = databaseConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, limit);
+            if (createdByUserId == null) {
+                ps.setNull(1, Types.INTEGER);
+                ps.setNull(2, Types.INTEGER);
+            } else {
+                ps.setInt(1, createdByUserId);
+                ps.setInt(2, createdByUserId);
+            }
+            ps.setInt(3, limit);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -186,13 +202,15 @@ public class EntryRepository {
                             rs.getString("person_name"),
                             rs.getString("category_name"),
                             rs.getString("subcategory_name"),
-                            rs.getString("category_kind"));
+                            rs.getString("category_kind"),
+                            getNullableInteger(rs, "created_by_user_id"),
+                            rs.getString("created_by_display_name"));
 
                     latestEntries.add(entry);
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RepositoryException("Die letzten Einträge konnten nicht geladen werden.", e);
         }
 
         return latestEntries;
@@ -204,7 +222,8 @@ public class EntryRepository {
             Integer personId,
             Integer categoryId,
             Integer subcategoryId,
-            String description) {
+            String description,
+            Integer createdByUserId) {
 
         List<EntryOverviewResponse> entries = new ArrayList<>();
 
@@ -221,11 +240,14 @@ public class EntryRepository {
                     c.name AS category_name,
                     c.kind AS category_kind,
                     s.id AS subcategory_id,
-                    s.name AS subcategory_name
+                    s.name AS subcategory_name,
+                    e.created_by_user_id,
+                    creator.display_name AS created_by_display_name
                 FROM entries e
                 LEFT JOIN persons p ON e.person_id = p.id
                 JOIN subcategories s ON e.subcategory_id = s.id
                 JOIN categories c ON s.category_id = c.id
+                LEFT JOIN users creator ON e.created_by_user_id = creator.id
                 WHERE 1 = 1
                 """);
 
@@ -261,6 +283,11 @@ public class EntryRepository {
             parameters.add("%" + description + "%");
         }
 
+        if (createdByUserId != null) {
+            sql.append(" AND e.created_by_user_id = ?");
+            parameters.add(createdByUserId);
+        }
+
         sql.append(" ORDER BY e.entry_date DESC, e.id DESC");
 
         try (
@@ -284,13 +311,15 @@ public class EntryRepository {
                             rs.getString("category_name"),
                             rs.getString("category_kind"),
                             rs.getInt("subcategory_id"),
-                            rs.getString("subcategory_name"));
+                            rs.getString("subcategory_name"),
+                            getNullableInteger(rs, "created_by_user_id"),
+                            rs.getString("created_by_display_name"));
 
                     entries.add(entry);
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RepositoryException("Die Einträge konnten nicht durchsucht werden.", e);
         }
 
         return entries;
@@ -298,8 +327,11 @@ public class EntryRepository {
 
     public void save(Entry entry) {
         String sql = """
-                INSERT INTO entries (entry_date, amount, description, subcategory_id, person_id, note)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO entries (
+                    entry_date, amount, description, subcategory_id, person_id, note,
+                    created_by_user_id, updated_by_user_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (
@@ -317,9 +349,12 @@ public class EntryRepository {
                 ps.setNull(6, Types.VARCHAR);
             }
 
+            ps.setInt(7, entry.getCreatedByUserId());
+            ps.setInt(8, entry.getUpdatedByUserId());
+
             ps.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RepositoryException("Der Eintrag konnte nicht gespeichert werden.", e);
         }
     }
 
@@ -335,7 +370,7 @@ public class EntryRepository {
             ps.setInt(1, id);
             ps.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RepositoryException("Der Eintrag konnte nicht gelöscht werden.", e);
         }
     }
 
@@ -348,6 +383,7 @@ public class EntryRepository {
                     subcategory_id = ?,
                     person_id = ?,
                     note = ?,
+                    updated_by_user_id = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """;
@@ -367,10 +403,11 @@ public class EntryRepository {
                 ps.setNull(6, Types.VARCHAR);
             }
 
-            ps.setInt(7, id);
+            ps.setInt(7, entry.getUpdatedByUserId());
+            ps.setInt(8, id);
             ps.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RepositoryException("Der Eintrag konnte nicht aktualisiert werden.", e);
         }
     }
 
@@ -384,6 +421,13 @@ public class EntryRepository {
                 rs.getInt("person_id"),
                 rs.getString("note"),
                 LocalDateTime.parse(rs.getString("created_at").replace(" ", "T")),
-                LocalDateTime.parse(rs.getString("updated_at").replace(" ", "T")));
+                LocalDateTime.parse(rs.getString("updated_at").replace(" ", "T")),
+                getNullableInteger(rs, "created_by_user_id"),
+                getNullableInteger(rs, "updated_by_user_id"));
+    }
+
+    private Integer getNullableInteger(ResultSet resultSet, String columnName) throws SQLException {
+        int value = resultSet.getInt(columnName);
+        return resultSet.wasNull() ? null : value;
     }
 }

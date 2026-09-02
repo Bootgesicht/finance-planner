@@ -3,11 +3,13 @@ import { getPersons } from '../api/personApi'
 import { getCategories } from '../api/categoryApi'
 import { getSubcategoriesByCategoryId } from '../api/subcategoryApi'
 import { searchEntries, deleteEntry, updateEntry } from '../api/entryApi'
+import { getUsers } from '../api/userApi'
 
 function EntriesPage() {
     const [persons, setPersons] = useState([])
     const [categories, setCategories] = useState([])
     const [subcategories, setSubcategories] = useState([])
+    const [users, setUsers] = useState([])
 
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
@@ -15,6 +17,7 @@ function EntriesPage() {
     const [categoryId, setCategoryId] = useState('')
     const [subcategoryId, setSubcategoryId] = useState('')
     const [description, setDescription] = useState('')
+    const [createdByUserId, setCreatedByUserId] = useState('')
 
     const [entries, setEntries] = useState([])
     const [errorMessage, setErrorMessage] = useState('')
@@ -44,6 +47,13 @@ function EntriesPage() {
             .catch(error => {
                 console.error('Error loading categories:', error)
                 setErrorMessage('Kategorien konnten nicht geladen werden.')
+            })
+
+        getUsers()
+            .then(data => setUsers(data))
+            .catch(error => {
+                console.error('Error loading users:', error)
+                setErrorMessage('Benutzer konnten nicht geladen werden.')
             })
 
         searchEntries({})
@@ -88,7 +98,8 @@ function EntriesPage() {
             personId,
             categoryId,
             subcategoryId,
-            description
+            description,
+            createdByUserId
         }
 
         searchEntries(filters)
@@ -238,6 +249,7 @@ function EntriesPage() {
         setCategoryId('')
         setSubcategoryId('')
         setDescription('')
+        setCreatedByUserId('')
         setSubcategories([])
         setSuccessMessage('')
         setErrorMessage('')
@@ -413,6 +425,22 @@ function EntriesPage() {
                                     placeholder="z. B. Rewe"
                                 />
                             </div>
+
+                            <div className="col-12 col-md-2">
+                                <label className="form-label">Eingetragen von</label>
+                                <select
+                                    className="form-select"
+                                    value={createdByUserId}
+                                    onChange={(event) => setCreatedByUserId(event.target.value)}
+                                >
+                                    <option value="">Alle</option>
+                                    {users.map(user => (
+                                        <option key={user.id} value={user.id}>
+                                            {user.displayName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
                         <div className="d-flex gap-2 mt-3">
@@ -450,6 +478,7 @@ function EntriesPage() {
                                         <th>Kategorie</th>
                                         <th>Subkategorie</th>
                                         <th>Notiz</th>
+                                        <th>Eingetragen von</th>
                                         <th>Aktionen</th>
                                     </tr>
                                 </thead>
@@ -558,6 +587,8 @@ function EntriesPage() {
                                                             />
                                                         </td>
 
+                                                        <td>{entry.createdByDisplayName || 'Unbekannt'}</td>
+
                                                         <td>
                                                             <div className="d-flex gap-2">
                                                                 <button
@@ -589,6 +620,7 @@ function EntriesPage() {
                                                         <td>{entry.categoryName}</td>
                                                         <td>{entry.subcategoryName}</td>
                                                         <td>{entry.note || '-'}</td>
+                                                        <td>{entry.createdByDisplayName || 'Unbekannt'}</td>
                                                         <td>
                                                             <div className="d-flex gap-2">
                                                                 <button

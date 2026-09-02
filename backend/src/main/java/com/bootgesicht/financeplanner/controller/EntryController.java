@@ -11,21 +11,28 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.bootgesicht.financeplanner.dto.EntryOverviewResponse;
 import com.bootgesicht.financeplanner.dto.EntryRequest;
 import com.bootgesicht.financeplanner.dto.LatestEntryResponse;
 import com.bootgesicht.financeplanner.model.Entry;
 import com.bootgesicht.financeplanner.service.EntryService;
+import com.bootgesicht.financeplanner.model.UserAccount;
+import com.bootgesicht.financeplanner.service.UserService;
 
 @RestController
 @RequestMapping("/entries")
 public class EntryController {
 
     private EntryService entryService;
+    private UserService userService;
 
-    public EntryController(EntryService entryService) {
+    public EntryController(EntryService entryService, UserService userService) {
         this.entryService = entryService;
+        this.userService = userService;
     }
 
     @GetMapping
@@ -50,8 +57,18 @@ public class EntryController {
 
     @GetMapping("/latest")
     public List<LatestEntryResponse> getLatestEntries(
-            @RequestParam(defaultValue = "15") int limit) {
-        return entryService.getLatestEntries(limit);
+            @RequestParam(defaultValue = "15") int limit,
+            @RequestParam(defaultValue = "mine") String scope,
+            Authentication authentication) {
+        Integer createdByUserId;
+        if ("mine".equals(scope)) {
+            createdByUserId = userService.requireCurrentUser(authentication).getId();
+        } else if ("all".equals(scope)) {
+            createdByUserId = null;
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unbekannter Eintragsbereich.");
+        }
+        return entryService.getLatestEntries(limit, createdByUserId);
     }
 
     @GetMapping("/search")
@@ -61,7 +78,8 @@ public class EntryController {
             @RequestParam(required = false) Integer personId,
             @RequestParam(required = false) Integer categoryId,
             @RequestParam(required = false) Integer subcategoryId,
-            @RequestParam(required = false) String description) {
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) Integer createdByUserId) {
 
         return entryService.searchEntries(
                 startDate,
@@ -69,13 +87,15 @@ public class EntryController {
                 personId,
                 categoryId,
                 subcategoryId,
-                description
+                description,
+                createdByUserId
         );
     }
 
     @PostMapping
-    public void createEntry(@RequestBody EntryRequest request) {
-        entryService.createEntry(request);
+    public void createEntry(@RequestBody EntryRequest request, Authentication authentication) {
+        UserAccount user = userService.requireCurrentUser(authentication);
+        entryService.createEntry(request, user.getId());
     }
 
     @DeleteMapping("/{id}")
@@ -86,7 +106,9 @@ public class EntryController {
     @PutMapping("/{id}")
     public void updateEntry(
             @PathVariable int id,
-            @RequestBody EntryRequest request) {
-        entryService.updateEntry(id, request);
+            @RequestBody EntryRequest request,
+            Authentication authentication) {
+        UserAccount user = userService.requireCurrentUser(authentication);
+        entryService.updateEntry(id, request, user.getId());
     }
 }

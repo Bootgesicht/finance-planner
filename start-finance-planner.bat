@@ -1,5 +1,7 @@
 @echo off
-title Finance Planner Launcher
+
+set "FINANCE_PLANNER_JONAS_PASSWORD=150324"
+set "FINANCE_PLANNER_ANNINA_PASSWORD=150324"
 
 echo ========================================
 echo        Finance Planner starten
@@ -7,9 +9,9 @@ echo ========================================
 echo.
 
 echo Backend wird gestartet...
-start "Finance Planner - Backend" /D "%~dp0backend" cmd /k "mvn spring-boot:run -Dspring-boot.run.workingDirectory=.."
+start "Finance Planner - Backend" cmd /k "cd /d "%~dp0" && mvn -f backend\pom.xml spring-boot:run"
 
 echo Frontend wird gestartet...
-start "Finance Planner - Frontend" /D "%~dp0frontend" cmd /k "npm run dev"
+start "Finance Planner - Frontend" cmd /k "cd /d "%~dp0frontend" && npm run dev"
 
 exit

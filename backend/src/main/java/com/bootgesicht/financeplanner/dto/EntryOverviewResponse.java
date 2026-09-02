@@ -17,11 +17,23 @@ public class EntryOverviewResponse {
 
     private int subcategoryId;
     private String subcategoryName;
+    private Integer createdByUserId;
+    private String createdByDisplayName;
 
     public EntryOverviewResponse(int id, String date, double amount, String description, String note,
             int personId, String personName,
             int categoryId, String categoryName, String categoryKind,
             int subcategoryId, String subcategoryName) {
+        this(id, date, amount, description, note, personId, personName,
+                categoryId, categoryName, categoryKind, subcategoryId, subcategoryName,
+                null, null);
+    }
+
+    public EntryOverviewResponse(int id, String date, double amount, String description, String note,
+            int personId, String personName,
+            int categoryId, String categoryName, String categoryKind,
+            int subcategoryId, String subcategoryName,
+            Integer createdByUserId, String createdByDisplayName) {
         this.id = id;
         this.date = date;
         this.amount = amount;
@@ -34,6 +46,8 @@ public class EntryOverviewResponse {
         this.categoryKind = categoryKind;
         this.subcategoryId = subcategoryId;
         this.subcategoryName = subcategoryName;
+        this.createdByUserId = createdByUserId;
+        this.createdByDisplayName = createdByDisplayName;
     }
 
     public int getId() {
@@ -82,5 +96,13 @@ public class EntryOverviewResponse {
 
     public String getSubcategoryName() {
         return subcategoryName;
+    }
+
+    public Integer getCreatedByUserId() {
+        return createdByUserId;
+    }
+
+    public String getCreatedByDisplayName() {
+        return createdByDisplayName;
     }
 }
