@@ -10,9 +10,18 @@ public class LatestEntryResponse {
     private String categoryName;
     private String subcategoryName;
     private String categoryKind;
+    private Integer createdByUserId;
+    private String createdByDisplayName;
 
     public LatestEntryResponse(int id, String date, double amount, String description,
             String personName, String categoryName, String subcategoryName, String categoryKind) {
+        this(id, date, amount, description, personName, categoryName, subcategoryName,
+                categoryKind, null, null);
+    }
+
+    public LatestEntryResponse(int id, String date, double amount, String description,
+            String personName, String categoryName, String subcategoryName, String categoryKind,
+            Integer createdByUserId, String createdByDisplayName) {
         this.id = id;
         this.date = date;
         this.amount = amount;
@@ -21,6 +30,8 @@ public class LatestEntryResponse {
         this.categoryName = categoryName;
         this.subcategoryName = subcategoryName;
         this.categoryKind = categoryKind;
+        this.createdByUserId = createdByUserId;
+        this.createdByDisplayName = createdByDisplayName;
     }
 
     public int getId() {
@@ -53,5 +64,13 @@ public class LatestEntryResponse {
 
     public String getCategoryKind() {
         return categoryKind;
+    }
+
+    public Integer getCreatedByUserId() {
+        return createdByUserId;
+    }
+
+    public String getCreatedByDisplayName() {
+        return createdByDisplayName;
     }
 }

@@ -71,6 +71,7 @@ The entries overview shows individual transactions with their date, amount, desc
 * JDBC / Repository structure
 * REST API
 * SQLite database
+* Spring Security with server-side sessions and BCrypt password hashes
 
 ### Frontend
 
@@ -84,6 +85,44 @@ The entries overview shows individual transactions with their date, amount, desc
 * SQLite
 * Relational database schema
 * Tables for persons, categories, subcategories and entries
+
+## Local authentication setup
+
+The application has no public registration. On startup, it creates the missing local users
+`jonas` and `annina` only when their password environment variables are present. Existing users
+and password hashes are never overwritten.
+
+Set the variables in the terminal that starts the backend, for example in PowerShell:
+
+```powershell
+$env:FINANCE_PLANNER_JONAS_PASSWORD = '<choose-a-strong-local-password>'
+$env:FINANCE_PLANNER_ANNINA_PASSWORD = '<choose-a-different-strong-local-password>'
+mvn spring-boot:run -f backend/pom.xml
+```
+
+Do not put real passwords in `application.properties`, source files or Git. Passwords are stored
+in SQLite only as BCrypt hashes. If a user was already created, changing the environment variable
+does not reset that user's password.
+
+`Person` and `User` deliberately remain separate concepts: a person is the household member to
+whom a financial entry belongs; a user is the authenticated person who created or last edited the
+record. Both users share and can edit the complete household dataset. Analytics therefore remains
+household-wide and is not filtered by the logged-in user.
+
+## Session, CSRF and frontend origin
+
+Authentication uses an HTTP-only `JSESSIONID` cookie. The React app first retrieves a CSRF token
+from `/auth/csrf` and sends it in the `X-XSRF-TOKEN` header for every modifying request. Every API
+request uses `credentials: 'include'`, so a browser reload restores the existing backend session
+through `/auth/me`.
+
+For local Vite development, the only permitted browser origin is `http://localhost:5173`. Override
+it for another deployment with `FINANCE_PLANNER_FRONTEND_ORIGIN`; this must be one exact trusted
+origin, not `*`. When serving over HTTPS, also set `FINANCE_PLANNER_SECURE_COOKIES=true`. The local
+default is `false` so cookies work on plain `http://localhost`.
+
+The frontend API address defaults to `http://localhost:8080` and can be changed at build or dev
+startup with `VITE_API_BASE_URL`.
 
 ## Current Status
 

@@ -5,6 +5,7 @@ import { getCategories } from '../api/categoryApi'
 import { getSubcategoriesByCategoryId } from '../api/subcategoryApi'
 import { searchEntries, updateEntry } from '../api/entryApi'
 import { getPersons } from '../api/personApi'
+import { getUsers } from '../api/userApi'
 import EntriesPage from './EntriesPage'
 
 vi.mock('../api/personApi', () => ({ getPersons: vi.fn() }))
@@ -15,6 +16,7 @@ vi.mock('../api/entryApi', () => ({
     deleteEntry: vi.fn(),
     updateEntry: vi.fn()
 }))
+vi.mock('../api/userApi', () => ({ getUsers: vi.fn() }))
 
 const categories = [
     { categoryId: 10, categoryName: 'Alt', categoryKind: 'EXPENSE', archived: true },
@@ -34,13 +36,16 @@ const entry = {
     categoryName: 'Alt',
     categoryKind: 'EXPENSE',
     subcategoryId: 101,
-    subcategoryName: 'Alter Tarif'
+    subcategoryName: 'Alter Tarif',
+    createdByUserId: 7,
+    createdByDisplayName: 'Jonas'
 }
 
 describe('EntriesPage archive behavior', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         getPersons.mockResolvedValue([{ personId: 1, personName: 'Familie' }])
+        getUsers.mockResolvedValue([{ id: 7, username: 'jonas', displayName: 'Jonas' }])
         getCategories.mockResolvedValue(categories)
         searchEntries.mockResolvedValue([entry])
         updateEntry.mockResolvedValue()
@@ -98,5 +103,22 @@ describe('EntriesPage archive behavior', () => {
         await waitFor(() => expect(getSubcategoriesByCategoryId).toHaveBeenCalledWith('20'))
         expect(await within(subcategorySelect).findByRole('option', { name: 'Neue Struktur' }))
             .toBeInTheDocument()
+    })
+
+    it('filters independently by the user who created the entry', async () => {
+        render(<EntriesPage />)
+        await screen.findByText('Historisch')
+
+        const creatorFilter = screen.getAllByRole('combobox')[3]
+        expect(within(creatorFilter).getByRole('option', { name: 'Jonas' })).toBeInTheDocument()
+        expect(screen.getAllByText('Jonas')).toHaveLength(2)
+
+        fireEvent.change(creatorFilter, { target: { value: '7' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Filtern' }))
+
+        await waitFor(() => expect(searchEntries).toHaveBeenLastCalledWith(expect.objectContaining({
+            personId: '',
+            createdByUserId: '7'
+        })))
     })
 })
